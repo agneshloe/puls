@@ -1,0 +1,1305 @@
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; 
+}
+
+body { 
+    background: #ede4d6; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+/* Disable touch scaling across the app by default */
+html, body {
+    touch-action: pan-x pan-y; /* Allows scrolling, but prevents pinch/double-tap zoom */
+    -webkit-text-size-adjust: 100%; /* Prevents iOS auto text zooming */
+    user-select: none; /* Keeps native UI feeling like an app */
+}
+
+/* EXCEPTION: Allow full touch interaction & gestures inside the Map container */
+#map, .map-container, .mapboxgl-map, .gm-style {
+    touch-action: auto !important; /* Re-enables pinch, zoom, and rotation on maps */
+}
+
+.no-scroll {
+    overflow: hidden !important;
+    touch-action: none; /* Disables touch scrolling on mobile */
+}
+
+/* --- The Header System --- */
+header {
+    background: #ffffff; 
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(255, 255, 255, 0.3); /* Darker shadow for depth */
+    height: 450px; 
+    min-height: 0; 
+    overflow: hidden;
+    display: flex;
+    flex-direction: column; /* Map first, Filters second */
+    transition: height 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    will-change: height;
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+}
+.map-blur-vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    pointer-events: none;
+    
+    /* The actual blur effect */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    /* This mask keeps the center (0% to 70%) clear and fades the blur in at the edges */
+    mask-image: radial-gradient(
+        circle, 
+        transparent 70%, 
+        rgb(255, 255, 255) 100%
+    );
+    -webkit-mask-image: radial-gradient(
+        circle, 
+        transparent 70%, 
+        rgb(255, 255, 255) 100%
+    );
+
+    /* Optional: keep a tiny bit of your dark vignette to help the map bleed into the UI */
+    background: radial-gradient(
+        circle, 
+        transparent 70%, 
+        rgba(240, 245, 251, 0.4) 100%
+    );
+}
+
+/* Ensure action buttons stay above the blur */
+.map-action-btn, #recenterBtn {
+    z-index: 1001 !important;
+}
+
+#map-container {
+    flex: 1; /* This grows/shrinks to fill the header space */
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    min-height: 0; /* Important: Allows it to shrink to 0px */
+}
+
+#map {
+    height: 450px !important; /* Fixed height so content doesn't stretch */
+    width: 100% !important;
+}
+
+#drag-handle {
+    position: absolute; 
+    left: 50%; 
+    top: 50%; 
+    transform: translate(-50%, -50%); 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 10px;
+    z-index: 1002;
+    touch-action: none; /* Critical for mobile dragging */
+    cursor: grab;
+}
+#unified-feed-header {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 8px 12px; 
+    border-bottom: 1px solid #dcd4ca;
+    background: transparent;
+    position: relative;
+    height: 50px;
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+}
+/* --- The Feed --- */
+#feed {
+    overscroll-behavior-y: contain;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1; 
+    padding: 0;
+    /* We keep this for modern mobile browsers */
+    padding-bottom: env(safe-area-inset-bottom, 20px); 
+    display: flex;
+    flex-direction: column;
+}
+
+/* This creates a guaranteed 80px gap at the very end of the scroll */
+#feed::after {
+    content: "";
+    display: block;
+    min-height: 180px; /* Adjust this value if you need more/less space */
+    width: 100%;
+    flex-shrink: 0;
+}
+/* Feed */
+.post-card {
+    max-width: 500px;
+    padding: 4px;
+    width: 100%;
+    margin: 25px auto 20px auto;
+    background: transparent;
+    padding: 0;
+    border-radius: 15px;
+}
+.post-card:first-child {
+    /* border:0 !important; */
+}
+.post-content {
+    /* background-color:rgb(25, 25, 25); */
+    border-radius:0;
+    padding:0;
+}
+.post-card p {
+    font-family:Georgia, 'Times New Roman', Times, serif;
+    padding: 5px;    /* Use padding instead of margin to create the "safe zone" */
+    font-size: 11.5pt;
+    color: #57162b;
+    font-weight: 400;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+}
+#postModal {
+    /* Don't use display: none here; use it on the overlay instead */
+    position: absolute;
+    flex-direction: column;
+    bottom: 0;
+    left: 50%;
+    width: 100%;
+    max-width: 500px;
+    height: 90vh; /* Slide up to 90% of screen height */
+    background: #252b30;
+    border-radius: 20px 20px 0 0;
+    /* Starting Position: Hidden below screen */
+    transform: translateX(-50%) translateY(100%); /* Start off-screen */
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 19999;
+    color:#eee;
+}
+
+/* When this class is added via JS, it slides up */
+#postModal.slide-up {
+    transform: translateX(-50%) translateY(0);
+}
+
+/* THE SCROLLABLE CONTENT AREA */
+.modal-content {
+    flex: 1;                /* Occupies all space between header and footer */
+    overflow-y: auto;       /* The only part that scrolls */
+    -webkit-overflow-scrolling: touch; 
+    padding: 20px;
+    display: block;         /* Elements stack naturally at fixed heights */
+}
+.modal {
+    display: none; 
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%; /* Takes up 80% of screen height */
+    background: white;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+    z-index: 1000;
+    /* Animation */
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+}
+
+/* Class to trigger the slide-in */
+.modal.is-visible {
+    display: block;
+    transform: translateY(0);
+}
+/* This class will be toggled on the <body> tag */
+body.modal-open::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6); /* Darken the background */
+    backdrop-filter: blur(4px);    /* Optional: adds a nice modern blur */
+    z-index: 9998;                 /* Just below the modal (9999) */
+    pointer-events: all;           /* Blocks all clicks to the feed/header */
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Prevent the background from scrolling while modal is open */
+body.modal-open {
+    overflow: hidden !important;
+}
+/* Unified Element Styling - No scaling hacks */
+.modal-content input[type="text"], 
+.modal-content select,
+.modal-content input[type="date"],
+.modal-content input[type="time"] {
+    width: 100%;
+    height: 50px; /* Fixed height for consistency */
+    margin: 10px 0;
+    padding: 0 15px;
+    border: 1.5px solid #eee; 
+    border-radius: 10px;
+    font-size: 16px; /* Standard size to prevent iOS zoom */
+    background-color: #f9f9f9;
+    box-sizing: border-box;
+    display: block;
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+}
+
+.info-text {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: #18191b;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #17191c;
+}
+.modal-actions {
+    flex-shrink: 0;         /* Never collapses or squishes */
+    padding: 15px 20px;
+    padding-bottom: calc(35px + env(safe-area-inset-bottom));
+    background: white;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+}
+#mini-map-container,
+.info-text,
+#media-input-wrapper,
+.lifespan-selector,
+.post-mode-selector {
+    flex-shrink: 0;         /* Forces them to keep their defined heights */
+}
+#mini-map-container {
+    height: 250px;
+}
+
+.btn-primary, .btn-secondary { 
+    background: #ff3100;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Roboto', sans-serif;
+    font-weight:600;
+    border-radius: 8px;
+    font-size: 10pt;
+    width: 110px;
+}
+.btn-secondary { background: #72797d; }
+.btn-cancel { 
+    background: #72797d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Roboto', sans-serif;
+    font-weight:600;
+    border-radius: 8px;
+    font-size: 10pt;
+    width: 90px;
+}
+
+/* Base icon color classes */
+.filter-btn[data-category="Food"] { color: #FF6B6B; }
+.filter-btn[data-category="Art"] { color: #4D96FF; }
+.filter-btn[data-category="Music"] { color: #9D50BB; }
+.filter-btn[data-category="Urban"] { color: #FAB005; }
+.filter-btn[data-category="Community"] { color: #868E96; }
+.filter-btn[data-category="Nature"] { color: #51CF66; }
+
+.filter-btn svg {
+    pointer-events: none;
+}
+
+.delete-btn {
+    background: transparent;
+    border: none;
+    border-radius: 8px !important;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.delete-btn:hover {
+    background: #ffcccc;
+}
+/* Container for the badges */
+.badge-container {
+    display: flex;
+    gap: 6px;
+    padding:5px 0;
+    align-items: center;
+    justify-content: space-between; 
+    font-size: 13px; 
+    color: #b5b5b5; 
+    font-family: monospace;
+    text-transform: lowercase;
+}
+
+/* Custom Blue Clusters */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+    background-color: rgba(0, 122, 255, 0.2);
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+    background-color: rgba(0, 122, 255, 0.6);
+    color: white;
+    font-weight: bold;
+}
+/* General Pin styling to remove default leaflet box shadows */
+.custom-pin {
+    background: none;
+    border: none;
+}
+
+.map-action-btn {
+    position: absolute;
+    bottom: 55px;
+    right: 15px;
+    background: #ffffff;
+    border: none;
+    padding: 7px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #007aff;
+}
+#updateFeedBtn {
+    position: absolute;
+    bottom: 55px;
+    left: 50%;
+    transform: translateX(-50%); /* This centers it perfectly */
+    z-index: 1000;
+    background: #ff3100;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    display: none; 
+}
+.post-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 0;
+    overflow: hidden;
+    background-color: #000;
+    display: flex; /* Helps with alignment */
+}
+
+/* 4:3 Ratio */
+.post-card-image-wrapper.mode-landscape {
+    aspect-ratio: 4 / 3.5; 
+}
+
+/* 3:4 Ratio */
+.post-card-image-wrapper.mode-portrait {
+    aspect-ratio: 3.5 / 4;
+}
+
+.image-gallery {
+    display: flex;
+    width: 100%;
+    height: 100%; 
+    overflow-x: auto;
+    scroll-snap-type: x mandatory; 
+    scroll-behavior: smooth;
+    /* Remove any default padding that might cause a gap */
+    padding: 0;
+    margin: 0;
+}
+
+.image-gallery img, 
+.image-gallery video {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100% !important; 
+    object-fit: cover !important; 
+    /* Use 'start' instead of 'center' to ensure it sticks to the left edge */
+    scroll-snap-align: start; 
+}
+
+/* Hide scrollbar */
+.image-gallery::-webkit-scrollbar {
+    display: none;
+}
+.gallery-dots {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 20; /* Ensure this is above the image-gallery */
+    pointer-events: none; 
+    background: rgba(0, 0, 0, 0.25);
+    padding: 4px 8px;
+    border-radius: 10px;
+    backdrop-filter: blur(2px);
+}
+
+.gallery-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+}
+
+.gallery-dot.active {
+    background-color: #ffffff;
+    transform: scale(1.2);
+}
+/* Center pin styling */
+#mini-map-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, 50%); /* Shadow under the pin */
+    z-index: 999;
+    pointer-events: none;
+}
+
+#miniMap {
+    cursor: grab;
+}
+
+#miniMap:active {
+    cursor: grabbing;
+}
+
+/* Optional: Make the pin stand out */
+.leaflet-edit-marker-selected {
+    animation: pulse 2s infinite;
+}
+#uploadProgressBar {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 5px rgba(0, 122, 255, 0.2);
+}
+
+/* Optional: Add a slight pulse when it reaches 100% */
+#uploadProgressBar[style*="width: 100%"] {
+    box-shadow: 0 0 10px rgba(81, 207, 102, 0.5);
+}
+#previewModal {
+    display: none; /* Will be overridden by flex when active */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 10001; /* Higher than postModal (9999) */
+    /* ADD THESE: Centering Logic */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+#previewModal.slide-up {
+    display: flex; /* Switch from 'none' to 'flex' to enable centering */
+    transform: translateY(0);
+}
+
+#previewContentWrapper {
+    background: white; 
+    width: 100%; 
+    max-width: 500px;
+    padding: 20px;
+    box-sizing: border-box;
+    
+    /* Scroll safety: if the preview is too tall for the phone, it scrolls */
+    max-height: 100vh; 
+    overflow-y: auto;
+    
+    /* Visual polish to match the input modal */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(21, 21, 21, 0.5);
+    color: #fff; /* Changed to white to match your SVG stroke */
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    z-index: 10;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    
+    /* ADDED FOR FADING */
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.3s ease, background 0.2s, transform 0.1s;
+}
+
+/* THE FADE STATE */
+.nav-arrow.hidden {
+    opacity: 0;
+    pointer-events: none; /* Crucial: stops clicks when invisible */
+}
+
+.nav-arrow:active {
+    transform: translateY(-50%) scale(0.9);
+}
+
+.nav-arrow svg {
+    display: block;
+    /* Ensure the stroke is visible */
+    stroke: currentColor; 
+}
+
+.nav-arrow.left { left: 8px; }
+.nav-arrow.right { right: 8px; }
+
+.action-btn {
+    background: #1b1b1b;
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #949494;
+    transition: background 0.2s;
+}
+
+select:invalid {
+    color: #999; /* Gray text for the placeholder */
+}
+
+select option {
+    color: #333; /* Dark text for the actual choices */
+}
+/* This handles the graying out for ALL buttons when they are disabled */
+button:disabled {
+    background-color: #ccc !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    filter: grayscale(0.5); /* Optional: makes it look even more 'off' */
+    pointer-events: none;   /* Prevents accidental clicks while grayed out */
+}
+.lifespan-selector {
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-x: auto; /* Allow scrolling if screen is narrow */
+    height: 70px;
+    align-items: center;
+}
+
+.lifespan-btn {
+    flex: 1; /* Makes them all equal width */
+    min-width: 50px;
+    height: 48px; /* Slightly taller for two lines of text */
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: #888;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The Hover/Interaction state */
+.lifespan-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ccc;
+}
+
+/* The Active "Pulse" Blue State */
+.lifespan-btn.active {
+    background: #339af0;
+    color: white;
+    border-color: #339af0;
+    box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+    transform: translateY(-1px);
+}
+
+.lifespan-btn span {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    font-weight: 500;
+    opacity: 0.6;
+}
+
+.lifespan-btn.active span {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.9);
+}
+.thumb {
+    cursor: grab;
+    /* This prevents the browser from trying to scroll or zoom while touching the element */
+    touch-action: none; 
+    /* This prevents the user from accidentally highlighting text instead of dragging */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.thumb:active {
+    cursor: grabbing;
+}
+#media-thumbnails {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    touch-action: none; /* Prevents the browser from scrolling the feed */
+}
+#confirm-reorder {
+    display: block; 
+    margin: 5px auto 0 auto; 
+    padding: 8px 16px; 
+    background: #ff3100; 
+    color: white; 
+    border:  none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-size:9pt;
+    opacity: 0.3; 
+    transition: opacity 0.2s;
+}
+#toggle-icon {
+    transition: transform 0.3s ease;
+}
+.app-top {
+    background: rgb(19 27 31);
+    width: 100%;
+    height: 65px; /* Slightly taller for better tap targets */
+    display: none;
+    justify-content: space-between; /* Pushes items to far left, center, and far right */
+    align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid rgb(2 23 50);
+    position: sticky; /* Stays at the top */
+    top: 0;
+    z-index: 2000; /* Higher than map and header */
+    flex-shrink: 0; /* Prevents the bar from squishing */
+}
+
+.pulse-icon {
+    width: 28px;
+    height: 28px;
+    transform-origin: center;
+    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5));
+    animation: heartbeat-icon 2.5s infinite ease-in-out;
+}
+
+@keyframes heartbeat-icon {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        stroke-dashoffset: 0;
+    }
+    15% {
+        transform: scale(1.1); /* The "Thump" */
+        stroke-width: 4;        /* Boldens during the beat */
+    }
+    30% {
+        transform: scale(1);    /* Return */
+    }
+    45% {
+        transform: scale(1.05); /* The smaller "echo" beat */
+    }
+    60%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+/* Unified style for both top buttons */
+.nav-btn {
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s active;
+}
+
+.nav-btn:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+.mini-map-controls {
+    position: absolute;
+    bottom: 34px;
+    right: 12px;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space between the two buttons */
+}
+
+.map-ctrl-btn {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s active, background-color 0.2s;
+}
+
+.map-ctrl-btn:active {
+    transform: scale(0.92);
+    background-color: #f0f0f0;
+}
+
+#media-input-wrapper {
+    width: 100%;           /* Standard width now */
+    min-height: 48px;
+    margin: 10px 0;        /* Standard spacing */
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#postImage {
+    width: 100%;
+    height: 48px;
+    padding: 0 12px;
+    border: 1px solid #2d333b; /* Standard light border */
+    border-radius: 8px;
+    background: #1b1d24;
+    box-sizing: border-box;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 46px;      /* Centers the "Choose File" text vertically */
+}
+
+#lock-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff3100;
+}
+/* --- Clean Delete Button --- */
+#media-lock-overlay button {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#media-lock-overlay button:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+#media-lock-overlay button svg {
+    padding: 0 !important;
+    display: block;
+    margin: 0 auto;
+}
+
+#media-lock-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding:0 12px;
+    height: 100%; /* Match the wrapper height */
+    display: none; /* Toggled by JS */
+    align-items: center;
+    justify-content: space-between;
+    background: #1b1d24;
+    border: 1px solid #ff3100;
+    border-radius: 8px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+/* The state when scrolling down */
+.header-shrunk {
+    height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    border: none !important;
+}
+/* --- Updated Filter System (Text + Dot) --- */
+.filters {
+    position: absolute; 
+    bottom: 0; /* Raised to sit above your new Footer Menu */
+    left: 0; 
+    right: 0; 
+    padding: 0;
+    z-index: 1000;
+    background: transparent;
+    pointer-events: none; /* Allows map clicks through the gaps */
+}
+.filter-btn {
+    height: 40px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 12px; /* Slightly less round for a "modern" feel */
+    background: rgb(255 255 255 / 50%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #94a3b8;
+    border: 0px solid #d7d7d7;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover/Focus States */
+.filter-btn:active {
+    transform: scale(0.95);
+}
+
+/* --- The Active State (Category Themed) --- */
+.filter-btn.active {
+    background: #ff6666; /* Contrast against the dark map */
+    color: #ffffff !important;
+    border: 0px solid #ff6666;
+}
+
+/* The Dot: Subtle when inactive, vivid when active */
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.filter-btn.active .dot {
+    transform: scale(1.2);
+}
+
+/* Specific Active Colors - Only coloring the DOT when active for a cleaner look */
+.filter-btn[data-category="Food"].active .dot { background: #ff4d4d; }
+.filter-btn[data-category="Art"].active .dot { background: #4dabf7; }
+.filter-btn[data-category="Music"].active .dot { background: #be4bdb; }
+.filter-btn[data-category="Nature"].active .dot { background: #40c057; }
+.filter-btn[data-category="Urban"].active .dot { background: #fab005; }
+.filter-btn[data-category="Community"].active .dot { background: #868e96; }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+#category-scroll-area::-webkit-scrollbar {
+    display: none;
+}
+#category-scroll-area {
+    display: flex; 
+    overflow-x: auto; 
+    gap: 8px; 
+    padding: 0 15px; 
+    scrollbar-width: none; 
+    pointer-events: auto; /* Re-enable clicks for the buttons */
+}
+.bottom-nav {
+    position: fixed;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%); /* Centers the nav container */
+    width: 100%;
+    min-width: 200px; /* Ensures usability on narrow screens */
+    height: 70px; /* Increased height for extra bottom spacing */
+    
+    /* Frosted Glass Effect */
+    background: rgba(255, 251, 247, 0.7); /* Low-opacity white/cream base */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    /* Border & Corners */
+    border-radius: 20px 20px 0 0; /* Rounded top corners */
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start; /* Aligns content toward the top */
+    padding-top: 5px; /* Controls top inset for the icons */
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 18999;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #433838;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    flex: 1;
+    height: 40px; /* Fixed height so click area sits at the top */
+    transition: color 0.2s, transform 0.15s ease;
+}
+
+.nav-item:hover, .nav-item:active {
+    color: #812736;
+    transform: scale(1.08);
+}
+
+/* Add Button Container Alignment */
+.add-btn-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    height: 40px; /* Matches .nav-item height */
+    z-index: 19999;
+}
+
+#addPostBtn {
+    width: 30px;
+    height: 30px;
+    background: #cd2c0b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(205, 44, 11, 0.35);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#addPostBtn:active {
+    transform: scale(0.9);
+}
+.leaflet-marker-icon {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                filter 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.3s ease-out !important;
+    cursor: pointer;
+    pointer-events: auto !important;
+}
+.leaflet-marker-cluster {
+    transition: filter 0.3s ease, transform 0.3s ease !important;
+}
+/* Safe Zone State (Full Color) */
+.leaflet-marker-icon[style*="opacity: 1"] {
+    filter: brightness(1) grayscale(0%);
+}
+
+/* Edge State (Darkened) */
+.leaflet-marker-icon[style*="opacity: 0.9"] {
+    filter: brightness(0.5) grayscale(40%);
+    cursor: default !important; /* Shows the user they can't click yet */
+}
+/* The highlight effect for the marker icon */
+.highlight-pin {
+    filter: drop-shadow(0 0 10px #ff0000) drop-shadow(0 0 5px #ff0000) !important;
+    transition: filter 0.3s ease;
+    z-index: 1000 !important; /* Bring it to the front */
+}
+.highlight-cluster {
+    filter: hue-rotate(140deg) saturate(3) brightness(0.8) !important;
+    transition: filter 0.3s ease;
+    z-index: 1000 !important;
+}
+/* Ensure the tooltip can actually be seen */
+.tooltip-text.visible {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateY(0);
+}
+.input-wrapper {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+#char-counter {
+    text-align: right;
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+    font-family: monospace;
+    transition: color 0.2s;
+}
+
+/* Visual warning when they get close to the limit */
+#char-counter.near-limit {
+    color: #ff922b; /* Orange */
+}
+
+#char-counter.at-limit {
+    color: #ff4d4d; /* Red */
+}
+h3 {
+    color:#f1f1f1;
+    margin: 0 0 10px 0;
+    font-size:24px;
+    font-family:'Roboto',sans-serif;
+}
+.postTitle {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 16px; /* Looks naturally tall and crisp */
+    font-weight: 700;
+    color: #951212;
+    color: #00535a;
+    margin: 0;
+    text-transform: uppercase;
+    padding: 10px;
+    line-height: 1.1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Hide padding/margins completely if title is empty */
+.postTitle:empty {
+    display: none;
+}
+.postDescription {
+    font-family:Georgia, 'Times New Roman', Times, serif;
+    padding: 0 10px 10px 10px;
+    font-size: 11pt;
+    color: #000;
+    font-weight: 400;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+}
+.hashtags {
+    font-family:Georgia, 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #106f8a; 
+}
+#postTitle, #postDescription {
+    width: 100%;
+    padding: 12px;
+    background: #1a1d23;
+    border: 1.5px solid #2d333b;
+    border-radius: 8px;
+    color: #f1f1f1;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: none; /* Prevents the user from manually dragging the corner */
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 10px;
+}
+
+#postTitle:focus, #postDescription:focus {
+    border-color: #339af0; /* Highlights when typing */
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.onboarding-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 129999;
+    display: none; /* Controlled by JS */
+    align-items: center;
+    justify-content: center;
+}
+
+.onboarding-card {
+    width: 85%;
+    max-width: 400px;
+    background: #1a1a1a;
+    border-radius: 24px;
+    padding: 40px 20px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.onboarding-slides {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Hide scrollbar */
+}
+.onboarding-slides::-webkit-scrollbar { display: none; }
+
+.slide {
+    min-width: 100%;
+    scroll-snap-align: center;
+    padding-bottom: 20px;
+}
+
+.slide-icon { font-size: 60px; margin-bottom: 20px; }
+.slide h2 { color: #fff; margin-bottom: 15px; font-size: 24px; }
+.slide p { color: #aaa; line-height: 1.6; font-size: 15px; }
+
+.onboarding-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+.onboarding-dot { width: 8px; height: 8px; background: #444; border-radius: 50%; transition: 0.3s; }
+.onboarding-dot.active { background: #339af0; width: 20px; border-radius: 10px; }
+
+.get-started-btn {
+    background: #339af0;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 12px;
+    font-weight: 700;
+    margin-top: 20px;
+    cursor: pointer;
+}
+/* Tooltip Container */
+.options-menu-container {
+    position: relative;
+}
+
+/* The actual hidden menu */
+.options-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 120%; /* Position above the button */
+    right: 0;
+    background-color: #2a2a2a;
+    min-width: 100px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 100;
+    transition: opacity 0.2s, transform 0.2s;
+    transform: translateY(5px);
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+/* Show when button is focused or container is hovered */
+.options-menu-container:focus-within .options-tooltip,
+.options-menu-container:hover .options-tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Tooltip Items */
+.tooltip-item {
+    padding: 10px 15px;
+    color: #eee;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.tooltip-item:hover {
+    background-color: #383838;
+}
+
+.tooltip-item.delete-item {
+    color: #ff4d4d;
+    border-top: 1px solid #333;
+}
+
+.tooltip-item.delete-item:hover {
+    background-color: #441a1a;
+}
+/* 1. The base color for both icons (Subtle Grey) */
+.header-icon-btn {
+    color: #64748b; 
+    transition: color 0.2s ease;
+}
+
+/* 2. Logic for the SORT icon (Sliders) */
+/* If the select's value is NOT "time", color the button RED */
+.header-menu-wrapper:has(select#sortBy option:not([value="time"]):checked) .header-icon-btn {
+    color: #ff3100 !important;
+}
+
+/* 3. Logic for the PERSONAL icon (User) */
+/* If the select's value is NOT "all", color the button RED */
+.header-menu-wrapper:has(select#personalFilter option:not([value="all"]):checked) .header-icon-btn {
+    color: #ff3100 !important;
+}
+@keyframes pulse-red {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+.post-deleted {
+    transition: all 0.5s ease;
+    border-color: transparent !important;
+}
+.post-deleted .pulse-timer, .post-deleted .badge-wrapper {
+    display: none; /* Hide timers for deleted posts */
+}
