@@ -114,14 +114,14 @@ header {
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    padding: 8px 12px; 
-    border-bottom: 1px solid #dcd4ca;
-    background: transparent;
+    border-bottom: 0px solid #dcd4ca;
     position: relative;
-    height: 50px;
+    height: 40px;
     max-width: 500px;
-    width: 100%;
-    margin: 0 auto;
+    width: auto;
+    border-radius: 10px;
+    margin:10px;
+    background-color:#f2eadf;
 }
 /* --- The Feed --- */
 #feed {
@@ -149,7 +149,7 @@ header {
     max-width: 500px;
     padding: 4px;
     width: 100%;
-    margin: 25px auto 20px auto;
+    margin: 10px auto 10px auto;
     background: transparent;
     padding: 0;
     border-radius: 15px;
@@ -1114,8 +1114,7 @@ h3 {
     color: #951212;
     color: #00535a;
     margin: 0;
-    text-transform: uppercase;
-    padding: 10px;
+    padding: 0 10px 10px 10px;
     line-height: 1.1;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -1302,4 +1301,44 @@ h3 {
 }
 .post-deleted .pulse-timer, .post-deleted .badge-wrapper {
     display: none; /* Hide timers for deleted posts */
+}
+#header-section {
+    border-bottom:1px solid #dcd4ca;
+
+}
+#header-link-section {
+    padding: 0 5px 0 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    align-items: center;
+    border-bottom: 1px solid beige; /* Base light border */
+}
+
+.header-link {
+    width: 75px;
+    text-align: center;
+    padding-bottom: 5px;
+    border-bottom: 1px solid transparent; /* Hidden by default */
+    margin-bottom: -1px; /* Sits directly over the parent border-bottom */
+    transition: border-color 0.2s ease;
+}
+
+/* ACTIVE STATE: Darkens the exact section border-bottom segment under this link */
+.header-link.active {
+    border-bottom-color: #dcd4ca; /* Darkened border segment */
+}
+
+.header-link a {
+    text-decoration: none;
+    color: #a09587;
+    font-size: 9pt;
+    font-weight: 500;
+    display: block;
+    transition: color 0.2s ease;
+}
+
+.header-link.active a {
+    color: #2f343a;
+    font-weight: 700;
 }
