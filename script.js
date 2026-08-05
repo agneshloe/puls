@@ -1646,12 +1646,11 @@ card.innerHTML = `
                     font-size: 11.5px;
                     font-weight: 500;
                 ">
-                    <!-- LEFT COLUMN: CLICKABLE CATEGORY BADGE -->
+                    <!-- LEFT COLUMN: CATEGORY BADGE -->
                     <div style="flex: 1; display: flex; justify-content: flex-start; align-items: center; min-width: 0;">
                         ${mainCategoryText ? `
                             <span 
                                 class="post-category-badge"
-                                onclick="filterFeedByCategory('${mainCategoryText}')"
                                 style="
                                     background-color: ${activeCategoryStyle.bg};
                                     color: ${activeCategoryStyle.text};
@@ -1659,12 +1658,7 @@ card.innerHTML = `
                                     border-radius: 3px;
                                     flex-shrink: 0;
                                     white-space: nowrap;
-                                    cursor: pointer;
-                                    transition: transform 0.15s ease, opacity 0.15s ease;
-                                "
-                                onmouseover="this.style.opacity='0.85'; this.style.transform='scale(1.03)';"
-                                onmouseout="this.style.opacity='1'; this.style.transform='scale(1)';"
-                            >
+                                ">
                                 ${mainCategoryText}
                             </span>
                         ` : ''}
@@ -1688,11 +1682,15 @@ card.innerHTML = `
                                 ${post.likes || 0}
                             </span>
                         </div>
-
-                        <!-- 2. DIRECTIONS BUTTON -->
+                        
+                        <!-- 2. DIRECTIONS BUTTON (Folded Map + Route) -->
                         <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
-                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
-                                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <!-- Folded Map Container -->
+                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon>
+                                <!-- Map Fold Lines -->
+                                <line x1="9" y1="3" x2="9" y2="18"></line>
+                                <line x1="15" y1="6" x2="15" y2="21"></line>
                             </svg>
                         </button>
 
@@ -4992,47 +4990,6 @@ window.renderPopularTags = function() {
     if (postDescription && typeof syncSuggestedTagButtons === 'function') {
         syncSuggestedTagButtons(postDescription.value);
     }
-};
-
-window.filterFeedByCategory = function(categoryName) {
-    if (!categoryName) return;
-
-    // 1. Update the global category state variable used by getVisiblePosts()
-    currentCategory = categoryName;
-
-    // 2. Sync UI filter buttons (so the map/top bar highlights the new category)
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    filterButtons.forEach(btn => {
-        const btnCat = btn.getAttribute('data-category');
-        if (btnCat && btnCat.toLowerCase() === categoryName.toLowerCase()) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-
-    // 3. Leverage getVisiblePosts() to perform full spatial + category + sort filtering
-    const posts = getVisiblePosts();
-
-    // Handle map zoom guard ("TOO_FAR")
-    if (posts === "TOO_FAR") {
-        allFilteredPosts = [];
-    } else {
-        allFilteredPosts = posts;
-    }
-
-    // 4. Reset slice index & clear DOM feed container
-    currentSliceIndex = 0;
-    const feed = document.getElementById('feed');
-    if (feed) feed.innerHTML = '';
-
-    // 5. Re-render feed slice
-    if (typeof renderNextSlice === 'function') {
-        renderNextSlice();
-    }
-
-    // 6. Scroll smoothly to top of feed
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 // State variables for active user and hashtag filters
