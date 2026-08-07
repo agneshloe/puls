@@ -1086,7 +1086,6 @@ function renderNextSlice() {
         const isAuthor = post.authorId === currentUserId;
         const endTime = startTime + ((post.lifespanHours || 24) * 60 * 60 * 1000);
         const badgeLabel = isPending ? 'UPCOMING' : 'LIVE';
-        const locateBtnHtml = `<button class="locate-btn" data-id="${post.id}" title="Show on Map" style="background: transparent; border:0; color: #008bff; padding: 0px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s;"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></button>`;
         
         const formatD = (ts) => { const d = new Date(ts); return `${d.getDate()} ${d.toLocaleDateString([], { month: 'short' })}`; };
         const startDateStr = formatD(startTime);
@@ -1327,98 +1326,134 @@ function renderNextSlice() {
         }
 // Extract street address name (removing district)
         const locationName = post.address ? post.address.split(',')[0].trim() : 'Unknown Location';
-
 // Clean main category string (plain text, no hashtag)
-        const mainCategoryText = post.category ? post.category.trim() : '';
+const mainCategoryText = post.category ? post.category.trim() : '';
 
-        // Faded background colors paired with readable darkened text colors
-        const categoryColorMap = {
-            'Food': { bg: '#ff6060', text: '#000000' },      // Faded #FF6B6B
-            'Art': { bg: '#5eaeff', text: '#000000' },       // Faded #4D96FF
-            'Music': { bg: '#a24bff', text: '#000000' },     // Faded #9D50BB
-            'Urban': { bg: '#ffd738', text: '#000000' },     // Faded #FAB005
-            'Community': { bg: '#a5a5a5', text: '#000000' }, // Faded #868E96
-            'Nature': { bg: '#21ca0f', text: '#000000' }      // Faded #51CF66
-        };
+// Faded background colors paired with readable darkened text colors
+const categoryColorMap = {
+    'Food': { bg: '#ff6060', text: '#000000' },      
+    'Art': { bg: '#5eaeff', text: '#000000' },       
+    'Music': { bg: '#a24bff', text: '#000000' },     
+    'Urban': { bg: '#ffd738', text: '#000000' },     
+    'Community': { bg: '#a5a5a5', text: '#000000' }, 
+    'Nature': { bg: '#21ca0f', text: '#000000' }      
+};
 
-        // Fallback style if category is unknown/custom
-        const activeCategoryStyle = categoryColorMap[mainCategoryText] || { bg: '#d7cdc0', text: '#64748b' };
-// --- POST SUB-HEADER (LOCATION ON LEFT, TIME REMAINING ON RIGHT) ---
-        const postSubHeaderHtml = `
-            <div class="post-sub-header" style="
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                margin: 0 8px 8px 8px;
-                gap: 8px;
-            ">
-                <!-- LEFT SIDE: LOCATION BUTTON + 2-ROW ADDRESS & DISTANCE -->
-                <div style="
-                    display: flex; 
-                    align-items: center; 
-                    gap: 8px; 
-                    min-width: 0;
-                    color: #2f343a;
-                ">
-                    <div style="flex-shrink: 0;">
-                        ${locateBtnHtml}
-                    </div>
-                    <div style="
-                        display: flex; 
-                        flex-direction: column; 
-                        min-width: 0; 
-                        line-height: 1.25;
-                    ">
-                        <!-- ROW 1: ADDRESS -->
-                        <span style="
-                            font-size: 11.5px;
-                            font-weight: 600;
-                            white-space: nowrap; 
-                            overflow: hidden; 
-                            text-overflow: ellipsis;
-                        ">
-                            ${locationName}
-                        </span>
+// Fallback style if category is unknown/custom
+const activeCategoryStyle = categoryColorMap[mainCategoryText] || { bg: '#d7cdc0', text: '#64748b' };
 
-                        <!-- ROW 2: DISTANCE AWAY -->
-                        ${distanceBadge && distanceBadge !== '-' ? `
-                            <span style="
-                                font-size: 10.5px;
-                                font-weight: 500;
-                                color: #919499;
-                                white-space: nowrap; 
-                                overflow: hidden; 
-                                text-overflow: ellipsis;
-                            ">
-                                ${distanceBadge}
-                            </span>
-                        ` : ''}
-                    </div>
-                </div>
+// CATEGORY-COLORED LOCATION BUTTON WITH DROP SHADOW FOR MEDIA OVERLAY
+const categoryColor = activeCategoryStyle.bg;
 
-                <!-- RIGHT SIDE: TIME REMAINING BADGE -->
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #2f343a;
-                    font-size: 11.5px;
-                    font-weight: 500;
-                    white-space: nowrap;
-                    flex-shrink: 0;
-                ">
-                    <span>
-                        ${isExpired ? `
-                            <span class="expired-tag" style="color: #ef4444; font-weight: 700; text-transform: uppercase;">EXPIRED</span>
-                        ` : `
-                            <span class="pulse-timer" data-start="${startTime}" data-expiry="${expirationTime}">
-                                ${displayTimeText}
-                            </span>
-                        `}
-                    </span>
-                </div>
+const locateBtnHtml = `
+    <button class="locate-btn" data-id="${post.id}" title="Show on Map" style="
+        background: transparent; 
+        border: 0; 
+        color: ${categoryColor}; 
+        padding: 0px; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        flex-shrink: 0; 
+        transition: transform 0.2s;
+        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+    ">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+    </button>
+`;
+
+// --- FROSTED OVERLAY TOP SUB-HEADER (LOCATION ON LEFT, TIME REMAINING ON RIGHT) ---
+const postSubHeaderHtml = `
+    <div class="post-sub-header-overlay" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 8px 12px;
+    border-radius: 6px;
+        gap: 8px;
+        background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%);
+        pointer-events: auto;
+        color: #ffffff;
+    ">
+        <!-- LEFT SIDE: CATEGORY-COLORED LOCATION BUTTON + 2-ROW ADDRESS & DISTANCE -->
+        <div style="
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            min-width: 0;
+        ">
+            <div style="flex-shrink: 0;">
+                ${locateBtnHtml}
             </div>
-        `;
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                min-width: 0; 
+                line-height: 1.2;
+            ">
+                <!-- ROW 1: ADDRESS -->
+                <span style="
+                    font-size: 11.5px;
+                    font-weight: 700;
+                    color: #ffffff;
+                    white-space: nowrap; 
+                    overflow: hidden; 
+                    text-overflow: ellipsis;
+                    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                ">
+                    ${locationName}
+                </span>
+
+                <!-- ROW 2: DISTANCE AWAY -->
+                ${distanceBadge && distanceBadge !== '-' ? `
+                    <span style="
+                        font-size: 10px;
+                        font-weight: 500;
+                        color: rgba(255, 255, 255, 0.8);
+                        white-space: nowrap; 
+                        overflow: hidden; 
+                        text-overflow: ellipsis;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+                    ">
+                        ${distanceBadge}
+                    </span>
+                ` : ''}
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: TIME REMAINING BADGE -->
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #ffffff;
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        ">
+            <span>
+                ${isExpired ? `
+                    <span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase;">EXPIRED</span>
+                ` : `
+                    <span class="pulse-timer" data-start="${startTime}" data-expiry="${expirationTime}">
+                        ${displayTimeText}
+                    </span>
+                `}
+            </span>
+        </div>
+    </div>
+`;
         
         // --- PROGRESS BAR CALCULATION LOGIC ---
         const lifespanHours = Number(post.lifespanHours) || 24;
@@ -1660,7 +1695,6 @@ const rxIconMap = {
 
 card.innerHTML = `
             <!-- SUB-HEADER (LOCATION + BADGE) -->
-            ${postSubHeaderHtml}
 
             <!-- COMBINED MEDIA CARD WRAPPER (PROGRESS BAR + MEDIA WITH NO SPACING) -->
             <div style="
@@ -1670,6 +1704,7 @@ card.innerHTML = `
             ">
                 <!-- MEDIA CONTAINER -->
                 <div style="position: relative; width: 100%; overflow: hidden;">
+                    ${postSubHeaderHtml}
                     ${galleryHtml}
                     ${bottomLeftOverlayHtml}
                     ${topRightOverlayHtml}
@@ -1691,7 +1726,7 @@ card.innerHTML = `
                     font-weight: 500;
                 ">
                     <!-- LEFT COLUMN: CATEGORY BADGE -->
-                    <div style="flex: 1; display: flex; justify-content: flex-start; align-items: center; min-width: 0;">
+                    <div style="flex: 1; display: none; justify-content: flex-start; align-items: center; min-width: 0;">
                         ${mainCategoryText ? `
                             <span 
                                 class="post-category-badge"
