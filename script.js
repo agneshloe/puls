@@ -1333,18 +1333,17 @@ function renderNextSlice() {
 
         // Faded background colors paired with readable darkened text colors
         const categoryColorMap = {
-            'Food': { bg: '#eac0c0', text: '#c53030' },      // Faded #FF6B6B
-            'Art': { bg: '#c1c9d5', text: '#1d4ed8' },       // Faded #4D96FF
-            'Music': { bg: '#cec0dd', text: '#7e22ce' },     // Faded #9D50BB
-            'Urban': { bg: '#e3d28b', text: '#b45309' },     // Faded #FAB005
-            'Community': { bg: '#d0d0d0', text: '#475569' }, // Faded #868E96
-            'Nature': { bg: '#bbd5b8', text: '#15803d' }      // Faded #51CF66
+            'Food': { bg: '#ff6060', text: '#000000' },      // Faded #FF6B6B
+            'Art': { bg: '#5eaeff', text: '#000000' },       // Faded #4D96FF
+            'Music': { bg: '#a24bff', text: '#000000' },     // Faded #9D50BB
+            'Urban': { bg: '#ffd738', text: '#000000' },     // Faded #FAB005
+            'Community': { bg: '#a5a5a5', text: '#000000' }, // Faded #868E96
+            'Nature': { bg: '#21ca0f', text: '#000000' }      // Faded #51CF66
         };
 
         // Fallback style if category is unknown/custom
         const activeCategoryStyle = categoryColorMap[mainCategoryText] || { bg: '#d7cdc0', text: '#64748b' };
-
-        // --- POST SUB-HEADER (LOCATION ON LEFT, TIME REMAINING ON RIGHT) ---
+// --- POST SUB-HEADER (LOCATION ON LEFT, TIME REMAINING ON RIGHT) ---
         const postSubHeaderHtml = `
             <div class="post-sub-header" style="
                 display: flex; 
@@ -1353,30 +1352,48 @@ function renderNextSlice() {
                 margin: 0 8px 8px 8px;
                 gap: 8px;
             ">
-                <!-- LEFT SIDE: LOCATION BUTTON, NAME, DOT, & DISTANCE -->
+                <!-- LEFT SIDE: LOCATION BUTTON + 2-ROW ADDRESS & DISTANCE -->
                 <div style="
                     display: flex; 
                     align-items: center; 
-                    gap: 6px; 
+                    gap: 8px; 
                     min-width: 0;
                     color: #2f343a;
-                    font-size: 11.5px;
-                    font-weight: 500;
                 ">
                     <div style="flex-shrink: 0;">
                         ${locateBtnHtml}
                     </div>
-                    <span style="
-                        white-space: nowrap; 
-                        overflow: hidden; 
-                        text-overflow: ellipsis;
+                    <div style="
+                        display: flex; 
+                        flex-direction: column; 
+                        min-width: 0; 
+                        line-height: 1.25;
                     ">
-                        ${locationName}
-                    </span>
-                    ${distanceBadge && distanceBadge !== '-' ? `
-                        <span style="flex-shrink: 0;">•</span>
-                        <span style="flex-shrink: 0;">${distanceBadge}</span>
-                    ` : ''}
+                        <!-- ROW 1: ADDRESS -->
+                        <span style="
+                            font-size: 11.5px;
+                            font-weight: 600;
+                            white-space: nowrap; 
+                            overflow: hidden; 
+                            text-overflow: ellipsis;
+                        ">
+                            ${locationName}
+                        </span>
+
+                        <!-- ROW 2: DISTANCE AWAY -->
+                        ${distanceBadge && distanceBadge !== '-' ? `
+                            <span style="
+                                font-size: 10.5px;
+                                font-weight: 500;
+                                color: #919499;
+                                white-space: nowrap; 
+                                overflow: hidden; 
+                                text-overflow: ellipsis;
+                            ">
+                                ${distanceBadge}
+                            </span>
+                        ` : ''}
+                    </div>
                 </div>
 
                 <!-- RIGHT SIDE: TIME REMAINING BADGE -->
@@ -1413,7 +1430,7 @@ function renderNextSlice() {
         if (isCurrentlyPending) {
             // SCHEDULED / UPCOMING POST: Solid orange bar (100% full)
             progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #bdaca1; overflow: hidden; display: block;">
+                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #cbcbcb; overflow: hidden; display: block;">
                     <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #c07227;"></div>
                 </div>
             `;
@@ -1427,7 +1444,7 @@ function renderNextSlice() {
             if (remainingPercentage > 100) remainingPercentage = 100;
 
             progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #bdaca1; overflow: hidden; display: block;">
+                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #cbcbcb; overflow: hidden; display: block;">
                     <div class="post-progress-fill" style="
                         width: ${remainingPercentage.toFixed(2)}%; 
                         height: 100%; 
@@ -1446,13 +1463,35 @@ function renderNextSlice() {
         const userRx = (currentUserId && post.userReactions && post.userReactions[currentUserId]) 
             ? post.userReactions[currentUserId] 
             : (post.userReaction || null);
+// Reaction SVG Icons (All 16x16 with stroke/fill responsive to styling)
+const rxIconMap = {
+    // 1. INTERESTED: Eye Icon
+    interested: `
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    `,
 
-        const rxEmojiMap = {
-            interested: '👀',
-            countMeIn: '🙌',
-            goodTip: '💡'
-        };
+    // 2. COUNT ME IN: Hand / Raised Palm Icon
+    countMeIn: `
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+            <path d="M18 11V6a2 2 0 0 0-4 0v5"></path>
+            <path d="M14 10V4a2 2 0 0 0-4 0v6"></path>
+            <path d="M10 10.5V6a2 2 0 0 0-4 0v8"></path>
+            <path d="M18 8a2 2 0 0 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+        </svg>
+    `,
 
+    // 3. GOOD TIP: Lightbulb Icon
+    goodTip: `
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+            <path d="M9 18h6"></path>
+            <path d="M10 22h4"></path>
+            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1.55.6 2.81 1.5 3.5.76.76 1.23 1.52 1.41 2.5"></path>
+        </svg>
+    `
+};
         // Floating Bottom-Right Reaction Overlay
         const reactionMediaOverlayHtml = `
         <div class="reaction-container" style="
@@ -1479,7 +1518,7 @@ function renderNextSlice() {
                 </span>
             ` : ''}
 
-            <!-- CIRCULAR REACTION BUTTON -->
+<!-- CIRCULAR REACTION BUTTON -->
             <button class="action-btn reaction-trigger-btn" onclick="toggleReactionMenu('${post.id}')" style="
                 width: 34px;
                 height: 34px;
@@ -1494,9 +1533,9 @@ function renderNextSlice() {
                 transition: transform 0.15s ease, background 0.15s ease;
                 padding: 0;
             " title="Add Reaction">
-                <!-- Active Emoji OR Sleek SVG -->
+                <!-- Active Reaction SVG OR Add-Reaction Plus SVG -->
                 ${userRx ? `
-                    <span style="font-size: 20px; line-height: 1;">${rxEmojiMap[userRx]}</span>
+                    <span style="display: flex; align-items: center; justify-content: center; color: #ffffff;">${rxIconMap[userRx]}</span>
                 ` : `
                     <svg width="30" height="30" viewBox="-1.6 -1.6 19.20 19.20" xmlns="http://www.w3.org/2000/svg" fill="currentColor" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); flex-shrink: 0;">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 7.5c0 .169-.01.336-.027.5h1.005A5.5 5.5 0 1 0 8 12.978v-1.005A4.5 4.5 0 1 1 12 7.5zM5.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm2 2.5c.712 0 1.355-.298 1.81-.776l.707.708A3.49 3.49 0 0 1 7.5 10.5a3.49 3.49 0 0 1-2.555-1.108l.707-.708A2.494 2.494 0 0 0 7.5 9.5zm2-2.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm2.5 3h1v2h2v1h-2v2h-1v-2h-2v-1h2v-2z"></path>
@@ -1535,7 +1574,9 @@ function renderNextSlice() {
                     color: #ffffff;
                     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
                 ">
-                    <span>👀 Interested</span>
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        ${rxIconMap.interested} Interested
+                    </span>
                     <span style="
                         font-weight: 700; 
                         font-size: 11px; 
@@ -1562,7 +1603,9 @@ function renderNextSlice() {
                     color: #ffffff;
                     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
                 ">
-                    <span>🙌 Count me in</span>
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        ${rxIconMap.countMeIn} Count me in
+                    </span>
                     <span style="
                         font-weight: 700; 
                         font-size: 11px; 
@@ -1589,7 +1632,9 @@ function renderNextSlice() {
                     color: #ffffff;
                     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
                 ">
-                    <span>💡 Good tip</span>
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        ${rxIconMap.goodTip} Good tip
+                    </span>
                     <span style="
                         font-weight: 700; 
                         font-size: 11px; 
@@ -1614,7 +1659,6 @@ function renderNextSlice() {
         }
 
 card.innerHTML = `
-            ${post.title ? `<div class="postTitle">${post.title}</div>` : ''}
             <!-- SUB-HEADER (LOCATION + BADGE) -->
             ${postSubHeaderHtml}
 
@@ -1631,7 +1675,7 @@ card.innerHTML = `
                     ${topRightOverlayHtml}
                     ${reactionMediaOverlayHtml}
                 </div>       
-            </div>     
+            </div>  
             
             <div class="post-card-body" style="padding: 0;">
 
@@ -1724,6 +1768,8 @@ card.innerHTML = `
                 </div>
 
                 <!-- POST DESCRIPTION WITH BOLD USERNAME ON LEFT -->
+
+            ${post.title ? `<div class="postTitle">${post.title}</div>` : ''}
                 <div class="postDescription">
                     ${post.description ? formatHashtags(post.description) : ''}
                 </div>
