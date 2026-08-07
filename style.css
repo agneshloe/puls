@@ -6,7 +6,7 @@
 
 body { 
     background: #ede4d6; 
-    background: #ffffff; 
+    background: #f4f4f4; 
     display: flex; 
     flex-direction: column; 
     height: 100vh; 
@@ -414,8 +414,9 @@ body.modal-open {
     width: 100%;
     border-radius: 0;
     overflow: hidden;
-    background-color: #000;
+    background-color: transparent;
     display: flex; /* Helps with alignment */
+    border-radius: 6px;
 }
 
 /* 4:3 Ratio */
@@ -456,30 +457,32 @@ body.modal-open {
 }
 .gallery-dots {
     position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 4px; 
+    left: 8px;
+    right: 8px;
+    transform: none; /* Removed transform: translateX */
     display: flex;
-    gap: 6px;
-    z-index: 20; /* Ensure this is above the image-gallery */
+    gap: 4px;
+    z-index: 20;
     pointer-events: none; 
-    background: rgba(0, 0, 0, 0.25);
-    padding: 4px 8px;
-    border-radius: 10px;
-    backdrop-filter: blur(2px);
+    background: transparent; /* Removed dark pill container */
+    padding: 0;
+    border-radius: 0;
+    backdrop-filter: none;
 }
 
 .gallery-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.4);
-    transition: all 0.2s ease;
+    flex: 1; /* Automatically divides available width equally among all items */
+    height: 3px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.35);
+    transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 
 .gallery-dot.active {
     background-color: #ffffff;
-    transform: scale(1.2);
+    transform: none; /* Removed scale transform */
+    opacity: 1;
 }
 /* Center pin styling */
 #mini-map-container::after {
@@ -1120,7 +1123,6 @@ h3 {
     line-height: 1.1;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    text-transform: lowercase;
 }
 
 /* Hide padding/margins completely if title is empty */
@@ -1128,7 +1130,6 @@ h3 {
     display: none;
 }
 .postDescription {
-    font-family:Georgia, 'Times New Roman', Times, serif;
     padding: 0 10px 10px 10px;
     font-size: 11pt;
     color: #000;
@@ -1139,7 +1140,6 @@ h3 {
     line-height: 1.4;
 }
 .hashtags {
-    font-family:Georgia, 'Times New Roman', Times, serif;
     font-size: 11pt;
     color: #106f8a; 
 }
@@ -1336,7 +1336,7 @@ h3 {
     text-decoration: none;
     color: #8c8c8c;
     font-size: 9pt;
-    font-weight: 500;
+    font-weight: 800;
     display: block;
     transition: color 0.2s ease;
 }
