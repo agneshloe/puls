@@ -6,6 +6,7 @@
 
 body { 
     background: #ede4d6; 
+    background: #ffffff; 
     display: flex; 
     flex-direction: column; 
     height: 100vh; 
@@ -122,6 +123,7 @@ header {
     border-radius: 10px;
     margin:10px;
     background-color:#f2eadf;
+    background-color:#f4f4f4;
 }
 /* --- The Feed --- */
 #feed {
@@ -1108,16 +1110,17 @@ h3 {
     font-family:'Roboto',sans-serif;
 }
 .postTitle {
-    font-family: 'Playfair Display', Georgia, serif;
+    /* font-family: 'Playfair Display', Georgia, serif; */
     font-size: 16px; /* Looks naturally tall and crisp */
     font-weight: 700;
     color: #951212;
-    color: #00535a;
+    /* color: #00535a; */
     margin: 0;
     padding: 0 10px 10px 10px;
     line-height: 1.1;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    text-transform: lowercase;
 }
 
 /* Hide padding/margins completely if title is empty */
@@ -1303,7 +1306,7 @@ h3 {
     display: none; /* Hide timers for deleted posts */
 }
 #header-section {
-    border-bottom:1px solid #dcd4ca;
+    border-bottom:0px solid #dcd4ca;
 
 }
 #header-link-section {
@@ -1312,7 +1315,7 @@ h3 {
     flex-direction: row;
     justify-content: space-evenly;
     align-items: center;
-    border-bottom: 1px solid beige; /* Base light border */
+    border-bottom: 1px solid rgb(241, 241, 241); /* Base light border */
 }
 
 .header-link {
@@ -1326,12 +1329,12 @@ h3 {
 
 /* ACTIVE STATE: Darkens the exact section border-bottom segment under this link */
 .header-link.active {
-    border-bottom-color: #dcd4ca; /* Darkened border segment */
+    border-bottom-color: #c5c5c5; /* Darkened border segment */
 }
 
 .header-link a {
     text-decoration: none;
-    color: #a09587;
+    color: #8c8c8c;
     font-size: 9pt;
     font-weight: 500;
     display: block;
