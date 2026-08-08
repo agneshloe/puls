@@ -238,13 +238,6 @@ let currentImageMode = 'portrait'; // Default state
 let allFilteredPosts = []; // Stores the full list of valid posts
 let currentSliceIndex = 0; // Tracks how many have been rendered
 const SLICE_SIZE = 20;     // How many to load at once
-// Clean inline clock icon for timer badges
-const timerSvgIcon = `
-    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: -2px;">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-    </svg>
-`;
 
 const categoryMap = {
     "Food": ["General", "Café", "Happy Hour", "Food Truck", "Pop-Up Kitchen"],
@@ -1051,7 +1044,7 @@ function renderNextSlice() {
             } else timeVal = `${minsRemaining}m`;
             
             // Includes the SVG clock icon instead of "Expires in"
-            displayTimeText = `${timerSvgIcon}${timeVal}`;
+            displayTimeText = `${timeVal} left`;
         }
         // --- MEDIA GALLERY LOGIC ---
         const media = post.mediaItems || [];
@@ -1116,11 +1109,11 @@ function renderNextSlice() {
                     <circle cx="12" cy="5" r="0.8" fill="currentColor"></circle>
                 </svg>
 
-                <span class="tooltip-text" style="visibility: hidden; opacity: 0; width: max-content; min-width: 140px; max-width: 200px; background-color: #222; color: #fff; text-align: left; border-radius: 8px; padding: 10px 12px; position: absolute; z-index: 10000; bottom: 140%; right: 0; transition: all 0.2s ease; font-size: 11px; font-family: sans-serif; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+                <span class="tooltip-text" style="visibility: hidden; opacity: 0; width: max-content; min-width: 140px; max-width: 200px; background-color: #222; color: #fff; text-align: left; border-radius: 8px; padding: 10px 12px; position: absolute; z-index: 10000; bottom: 140%; left: 0; transition: all 0.2s ease; font-size: 11px; font-family: sans-serif; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
                     <span style="display:block; font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px;">Posted ${relativeTime} by</span>
                     <strong style="color: #339af0; display: block; margin-bottom: 6px;">${username}</strong>
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">${timeDetailsHtml}</div>
-                    <i style="position: absolute; top: 99%; right: 8px; border-width: 6px; border-style: solid; border-color: #222 transparent transparent transparent;"></i>
+                    <i style="position: absolute; top: 99%; left: 8px; border-width: 6px; border-style: solid; border-color: #222 transparent transparent transparent;"></i>
                 </span>
             </button>
         </div>`;
@@ -1145,149 +1138,120 @@ function renderNextSlice() {
             authorAvatarUrl = localStorage.getItem(`pulse_avatar_${currentUserId}`) || null;
         }
 // --- MEDIA OVERLAYS (AUTHOR BOTTOM-LEFT & LINK TOP-RIGHT) ---
-        let bottomLeftOverlayHtml = '';
         let topRightOverlayHtml = '';
+// --- AUTHOR DATA & PREVIEWS ---
+const authorHandle = post.authorUsername || '';
+const formattedHandle = authorHandle ? (authorHandle.startsWith('@') ? authorHandle : `@${authorHandle}`) : '';
 
-        const authorHandle = post.authorUsername || '';
+// Gather previews for popover
+const authorPosts = allPosts.filter(p => p.authorId === post.authorId || p.authorUsername === post.authorUsername);
+const authorPostCount = authorPosts.length;
+const authorPreviewsHtml = authorPosts
+    .filter(p => p.mediaItems && p.mediaItems.length > 0)
+    .slice(0, 3)
+    .map(p => `<div style="width: 38px; height: 38px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;"><img src="${p.mediaItems[0].url}" style="width:100%; height:100%; object-fit:cover;"></div>`)
+    .join('');
 
-// 1. AUTHOR AVATAR + USERNAME (BOTTOM LEFT CLICKABLE PROFILE PILL)
-        if (authorAvatarUrl || authorHandle) {
-            // Find all live posts by this author to show previews & count
-            const authorPosts = allPosts.filter(p => p.authorId === post.authorId || p.authorUsername === post.authorUsername);
-            const authorPostCount = authorPosts.length;
-            
-            // Gather up to 3 image previews from their posts
-            const authorPreviewsHtml = authorPosts
-                .filter(p => p.mediaItems && p.mediaItems.length > 0)
-                .slice(0, 3)
-                .map(p => `<div style="width: 38px; height: 38px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;"><img src="${p.mediaItems[0].url}" style="width:100%; height:100%; object-fit:cover;"></div>`)
-                .join('');
+// 1. INLINE USERNAME FOR DESCRIPTION (Bold text only, no avatar)
+const inlineAuthorHtml = formattedHandle 
+    ? `<strong style="font-weight: 700; color: #000000; margin-right: 6px;">${formattedHandle}</strong>` 
+    : '';
 
-            bottomLeftOverlayHtml = `
-                <div style="position: absolute; bottom: 12px; left: 12px; z-index: 20; pointer-events: auto;">
-                    
-                    <!-- CLICKABLE AUTHOR PILL -->
-                    <button class="author-pill-btn" onclick="toggleAuthorPopover(event, '${post.id}')" style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 3px 8px 3px 3px;
-                        border-radius: 16px;
-                        background: rgba(0, 0, 0, 0.4);
-                        backdrop-filter: blur(4px);
-                        -webkit-backdrop-filter: blur(4px);
-                        border: 1px solid rgba(255,255,255,0.15);
-                        max-width: 180px;
-                        cursor: pointer;
-                        transition: transform 0.15s ease, background 0.15s ease;
-                    ">
-                        ${authorAvatarUrl ? `
-                            <div class="post-media-avatar" style="
-                                width: 22px; 
-                                height: 22px; 
-                                border-radius: 50%; 
-                                background: url('${authorAvatarUrl}') center/cover; 
-                                background-color:#ffffff;
-                                border: 1.5px solid #ffffff; 
-                                box-shadow: 0 1px 2px rgba(0,0,0,0.4);
-                                flex-shrink: 0;
-                            "></div>
-                        ` : ''}
-                        
-                        ${authorHandle ? `
-                            <span style="
-                                font-size: 12px;
-                                color: #ffffff;
-                                font-weight: 600;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                                text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-                            ">
-                                ${authorHandle.startsWith('@') ? authorHandle : `@${authorHandle}`}
-                            </span>
-                        ` : ''}
-                    </button>
+// 2. CLICKABLE AVATAR + POPOVER FOR ACTION ROW (RIGHT SIDE)
+const actionRowAvatarHtml = authorAvatarUrl ? `
+    <div style="position: relative; display: flex; align-items: center;">
+        <button onclick="toggleAuthorPopover(event, '${post.id}')" style="
+            background: none; 
+            border: 0; 
+            padding: 0; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        " title="${formattedHandle}">
+            <img src="${authorAvatarUrl}" style="
+                width: 24px; 
+                height: 24px; 
+                border-radius: 50%; 
+                object-fit: cover; 
+                border: 1.5px solid #ff0000;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            " />
+        </button>
 
-                    <!-- AUTHOR PROFILE CARD POPOVER -->
-                    <div id="author-popover-${post.id}" class="author-popover" style="
-                        display: none;
-                        position: absolute;
-                        left: 0;
-                        bottom: 36px;
-                        z-index: 35;
-                        width: 220px;
-                        padding: 12px;
-                        border-radius: 16px;
-                        background: rgba(0, 0, 0, 0.75);
-                        backdrop-filter: blur(12px);
-                        -webkit-backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255, 255, 255, 0.15);
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                        color: #ffffff;
-                        pointer-events: auto;
-                    ">
-                        <!-- HEADER: LARGE AVATAR + HANDLE + POST COUNT -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <div style="
-                                width: 44px; 
-                                height: 44px; 
-                                border-radius: 50%; 
-                                background: ${authorAvatarUrl ? `url('${authorAvatarUrl}') center/cover` : '#334155'}; 
-                                border: 2px solid #ffffff;
-                                background-color:white;
-                                flex-shrink: 0;
-                            "></div>
-                            <div style="overflow: hidden; min-width: 0;">
-                                <div style="font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    ${authorHandle.startsWith('@') ? authorHandle : `@${authorHandle}`}
-                                </div>
-                                <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">
-                                    ${authorPostCount} active ${authorPostCount === 1 ? 'post' : 'posts'}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- RECENT POST PREVIEWS + VIEW ALL BUTTON -->
-                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 4px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                                <span style="font-size: 10px; text-transform: uppercase; color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px;">Live Previews</span>
-                                
-                                <!-- VIEW USER POSTS BUTTON -->
-                                <button onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="
-                                    background: rgba(255, 255, 255, 0.15);
-                                    border: 1px solid rgba(255, 255, 255, 0.2);
-                                    color: #ffffff;
-                                    font-size: 10px;
-                                    font-weight: 700;
-                                    padding: 2px 8px;
-                                    border-radius: 10px;
-                                    cursor: pointer;
-                                    transition: background 0.15s ease;
-                                ">
-                                    View
-                                </button>
-                            </div>
-
-                            ${authorPreviewsHtml ? `
-                                <div style="display: flex; gap: 6px;">
-                                    ${authorPreviewsHtml}
-                                </div>
-                            ` : ''}
-                        </div>
+        <!-- AUTHOR POPOVER CARD -->
+        <div id="author-popover-${post.id}" class="author-popover" style="
+            display: none;
+            position: absolute;
+            right: 0;
+            bottom: 30px;
+            z-index: 35;
+            width: 220px;
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            color: #ffffff;
+            text-align: left;
+            pointer-events: auto;
+            font-weight: normal;
+        ">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="
+                    width: 44px; 
+                    height: 44px; 
+                    border-radius: 50%; 
+                    background: ${authorAvatarUrl ? `url('${authorAvatarUrl}') center/cover` : '#334155'}; 
+                    border: 2px solid #ffffff;
+                    background-color: white;
+                    flex-shrink: 0;
+                "></div>
+                <div style="overflow: hidden; min-width: 0;">
+                    <div style="font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${formattedHandle}
                     </div>
-
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">
+                        ${authorPostCount} active ${authorPostCount === 1 ? 'post' : 'posts'}
+                    </div>
                 </div>
-            `;
-        }
-        
-        // 2. EXTERNAL LINK PILL (TOP RIGHT)
+            </div>
+
+            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 10px; text-transform: uppercase; color: #a1a1aa; font-weight: 600; letter-spacing: 0.5px;">Live Previews</span>
+                    <button onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        color: #ffffff;
+                        font-size: 10px;
+                        font-weight: 700;
+                        padding: 2px 8px;
+                        border-radius: 10px;
+                        cursor: pointer;
+                    ">
+                        View
+                    </button>
+                </div>
+                ${authorPreviewsHtml ? `
+                    <div style="display: flex; gap: 6px;">
+                        ${authorPreviewsHtml}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    </div>
+` : '';
+
+// 2. EXTERNAL LINK PILL (TOP RIGHT)
         if (post.link) {
             topRightOverlayHtml = `
                 <div style="
                     position: absolute; 
-                    top: 12px; 
-                    right: 12px; 
+                    bottom: 16px; 
+                    left: 12px; 
                     z-index: 10; 
                     pointer-events: auto;
                 ">
@@ -1378,7 +1342,7 @@ const postSubHeaderHtml = `
         justify-content: space-between; 
         align-items: center; 
         padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 10px;
         gap: 8px;
         background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%);
         pointer-events: auto;
@@ -1694,135 +1658,107 @@ const rxIconMap = {
         }
 
 card.innerHTML = `
-            <!-- SUB-HEADER (LOCATION + BADGE) -->
+    <!-- COMBINED MEDIA CARD WRAPPER -->
+    <div style="
+        width: 100%; 
+        overflow: hidden; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    ">
+        <!-- MEDIA CONTAINER -->
+        <div style="position: relative; width: 100%; overflow: hidden;">
+            ${postSubHeaderHtml}
+            ${galleryHtml}
+            ${topRightOverlayHtml}
+            ${reactionMediaOverlayHtml}
+        </div>    
+    </div>  
+    
+    <div class="post-card-body" style="padding: 0;">
 
-            <!-- COMBINED MEDIA CARD WRAPPER (PROGRESS BAR + MEDIA WITH NO SPACING) -->
+        <!-- ACTION ROW (ACTION ICONS ON LEFT, PROFILE AVATAR ON RIGHT) -->
+        <div style="
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 8px 10px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 11.5px;
+            border-bottom:1px solid #e9e9e9;
+            font-weight: 500;
+        ">
+            <!-- LEFT COLUMN: ACTION BUTTONS -->
             <div style="
-                width: 100%; 
-                overflow: hidden; 
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                display: inline-flex; 
+                align-items: center; 
+                gap: 12px; 
+                flex-shrink: 0;
             ">
-                <!-- MEDIA CONTAINER -->
-                <div style="position: relative; width: 100%; overflow: hidden;">
-                    ${postSubHeaderHtml}
-                    ${galleryHtml}
-                    ${bottomLeftOverlayHtml}
-                    ${topRightOverlayHtml}
-                    ${reactionMediaOverlayHtml}
-                </div>       
-            </div>  
-            
-            <div class="post-card-body" style="padding: 0;">
+                <!-- 1. LIKE BUTTON + COUNT -->
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <button class="action-btn" onclick="toggleLike('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: ${heartStroke}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                       <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="${heartFill}" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                       </svg>
+                    </button>
+                    <span id="like-count-${post.id}" style="font-size: 12px; font-weight: 600; color: #555; display: ${post.likes > 0 ? 'inline' : 'none'};">
+                        ${post.likes || 0}
+                    </span>
+                </div>
+                
+                <!-- 2. DIRECTIONS BUTTON -->
+                <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon>
+                        <line x1="9" y1="3" x2="9" y2="18"></line>
+                        <line x1="15" y1="6" x2="15" y2="21"></line>
+                    </svg>
+                </button>
 
-                <!-- ACTION ROW (CATEGORY ON LEFT, CENTERED ACTION BUTTONS) -->
-                <div style="
-                    display: flex; 
-                    justify-content: space-between; 
-                    align-items: center; 
-                    padding: 6px 10px 8px 10px;
-                    width: 100%;
-                    box-sizing: border-box;
-                    font-size: 11.5px;
-                    font-weight: 500;
-                ">
-                    <!-- LEFT COLUMN: CATEGORY BADGE -->
-                    <div style="flex: 1; display: none; justify-content: flex-start; align-items: center; min-width: 0;">
-                        ${mainCategoryText ? `
-                            <span 
-                                class="post-category-badge"
-                                style="
-                                    background-color: ${activeCategoryStyle.bg};
-                                    color: ${activeCategoryStyle.text};
-                                    padding: 2px 6px;
-                                    border-radius: 3px;
-                                    flex-shrink: 0;
-                                    white-space: nowrap;
-                                ">
-                                ${mainCategoryText}
-                            </span>
-                        ` : ''}
-                    </div>
+                <!-- 3. INFO BUTTON -->
+                <div style="flex-shrink: 0; display: flex; align-items: center;">${infoBtnHtml}</div>
 
-                    <!-- CENTER COLUMN: ACTION BUTTONS (STAYS EXACTLY CENTERED) -->
-                    <div style="
-                        display: inline-flex; 
-                        align-items: center; 
-                        gap: 12px; 
-                        flex-shrink: 0;
-                    ">
-                        <!-- 1. LIKE BUTTON + COUNT -->
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <button class="action-btn" onclick="toggleLike('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: ${heartStroke}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-                               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="${heartFill}" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                               </svg>
-                            </button>
-                            <span id="like-count-${post.id}" style="font-size: 12px; font-weight: 600; color: #555; display: ${post.likes > 0 ? 'inline' : 'none'};">
-                                ${post.likes || 0}
-                            </span>
+                <!-- 4. OPTIONS MENU BUTTON -->
+                <div class="options-menu-container" style="position: relative; display: inline-flex; align-items: center;">
+                    <button class="action-btn menu-trigger-btn" style="width: 28px; height: 28px; background: none; border: 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+                            <circle cx="12" cy="12" r="1"></circle>
+                            <circle cx="12" cy="5" r="1"></circle>
+                            <circle cx="12" cy="19" r="1"></circle>
+                        </svg>
+                    </button>
+                    
+                    <div class="options-tooltip">
+                        <div class="tooltip-item" onclick="sharePost('${post.id}')">
+                            <span>Share</span>
                         </div>
-                        
-                        <!-- 2. DIRECTIONS BUTTON (Folded Map + Route) -->
-                        <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
-                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <!-- Folded Map Container -->
-                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon>
-                                <!-- Map Fold Lines -->
-                                <line x1="9" y1="3" x2="9" y2="18"></line>
-                                <line x1="15" y1="6" x2="15" y2="21"></line>
-                            </svg>
-                        </button>
-
-                        <!-- 3. INFO BUTTON -->
-                        <div style="flex-shrink: 0; display: flex; align-items: center;">${infoBtnHtml}</div>
-
-                        <!-- 4. OPTIONS MENU BUTTON -->
-                        <div class="options-menu-container" style="position: relative; display: inline-flex; align-items: center;">
-                            <button class="action-btn menu-trigger-btn" style="width: 28px; height: 28px; background: none; border: 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="5" r="1"></circle>
-                                    <circle cx="12" cy="19" r="1"></circle>
-                                </svg>
-                            </button>
-                            
-                            <div class="options-tooltip">
-                                <div class="tooltip-item" onclick="sharePost('${post.id}')">
-                                    <span>Share</span>
-                                </div>
-                                ${post.authorId === userId ? `
-                                <div class="tooltip-item delete-item" onclick="confirmDelete('${post.id}')">
-                                    <span>Delete</span>
-                                </div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT COLUMN: BALANCING SPACER (Keeps Action Buttons centered) -->
-                    <div style="flex: 1;"></div>
-                </div>
-
-                <!-- POST DESCRIPTION WITH BOLD USERNAME ON LEFT -->
-
-            ${post.title ? `<div class="postTitle">${post.title}</div>` : ''}
-                <div class="postDescription">
-                    ${post.description ? formatHashtags(post.description) : ''}
-                </div>
-            
-                <!-- SMALL GREY DETAILS ROW UNDERNEATH DESCRIPTION (POSTED TIME) -->
-                <div style="padding: 0px 10px 8px 10px; font-size: 11px; color: #2f2f2f; font-weight: 500;">
-                    <span>${relativeTime}</span>
-                </div>
-
-                <!-- HASHTAGS ROW -->
-                <div class="badge-container" style="display: none; align-items: center; padding: 6px 8px 2px 8px;">
-                    <div style="flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #555; font-family:'Roboto', sans-serif; font-weight: 600; text-transform: lowercase;">
-                        #${post.category}${post.subcategory && post.subcategory !== 'General' ? ` #${post.subcategory}` : ''}
+                        ${post.authorId === userId ? `
+                        <div class="tooltip-item delete-item" onclick="confirmDelete('${post.id}')">
+                            <span>Delete</span>
+                        </div>` : ''}
                     </div>
                 </div>
             </div>
-        `;
-        
+
+            <!-- RIGHT COLUMN: CLICKABLE PROFILE AVATAR -->
+            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                ${actionRowAvatarHtml}
+            </div>
+        </div>
+
+        ${post.title ? `<div class="postTitle">${post.title}</div>` : ''}
+
+        <!-- DESCRIPTION WITH BOLD USERNAME ON SAME LINE -->
+        <div class="postDescription">
+            ${inlineAuthorHtml}${post.description ? formatHashtags(post.description) : ''}
+        </div>
+
+        <!-- POSTED TIME ROW -->
+        <div style="padding: 0px 10px 8px 10px; font-size: 11px; color: #2f2f2f; font-weight: 500;">
+            <span>${relativeTime}</span>
+        </div>
+    </div>
+`;        
         // --- ATTACH LISTENERS ---
         const galleryEl = card.querySelector('.image-gallery');
         if (galleryEl && media.length > 1) {
@@ -2688,6 +2624,8 @@ document.getElementById('addPostBtn').onclick = () => {
     
     // 5. MiniMap Initialization (Wait for slide-up to stabilize)
     setTimeout(() => {
+        // Initialize auto-populated Oslo search listener
+        setupOsloVenueSearch();
         if (!miniMap) {
             miniMap = L.map('miniMap', { zoomControl: false, attributionControl: false })
                 .setView([postLatLng.lat, postLatLng.lng], 15);
@@ -3934,7 +3872,7 @@ setInterval(() => {
             }
 
             // Replace text prefix with inline SVG icon
-            const newHtml = `${timerSvgIcon}${timeVal}`;
+            const newHtml = `${timeVal} left`;
 
             if (timer.innerHTML !== newHtml) {
                 timer.innerHTML = newHtml;
@@ -5116,5 +5054,156 @@ window.clearActiveFilter = function() {
 
     if (typeof renderNextSlice === 'function') {
         renderNextSlice();
+    }
+};
+
+let osloSearchDebounce = null;
+
+function setupOsloVenueSearch() {
+    const input = document.getElementById('oslo-venue-search');
+    const results = document.getElementById('oslo-venue-results');
+
+    if (!input || !results) return;
+
+    input.value = '';
+    results.style.display = 'none';
+
+    // Fetch matching venues on input
+    input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        clearTimeout(osloSearchDebounce);
+
+        if (query.length < 2) {
+            results.style.display = 'none';
+            results.innerHTML = '';
+            return;
+        }
+
+        // Debounce 300ms to reduce API calls
+        osloSearchDebounce = setTimeout(() => {
+            fetchOsloVenuesFromApi(query, results);
+        }, 300);
+    });
+
+    // Close dropdown when clicking outside map container
+    document.addEventListener('click', (e) => {
+        const mapContainer = document.getElementById('mini-map-container');
+        if (mapContainer && !mapContainer.contains(e.target)) {
+            results.style.display = 'none';
+        }
+    });
+}
+
+// FETCH LIVE VENUES & BUSINESSES IN OSLO USING PHOTON AUTOCOMPLETE API
+async function fetchOsloVenuesFromApi(query, resultsContainer) {
+    try {
+        // Oslo center focus (lat: 59.9139, lon: 10.7522)
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=59.9139&lon=10.7522&zoom=12&limit=6&lang=en`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            renderOsloApiResults([], resultsContainer);
+            return;
+        }
+
+        const data = await response.json();
+
+        // Photon returns GeoJSON features format: { features: [ { properties, geometry } ] }
+        if (!data || !data.features) {
+            renderOsloApiResults([], resultsContainer);
+            return;
+        }
+
+        // Filter results strictly inside Oslo / Akershus area
+        const osloResults = data.features
+            .filter(f => f.properties.city === 'Oslo' || f.properties.state === 'Oslo' || f.properties.country === 'Norway')
+            .map(f => ({
+                lat: f.geometry.coordinates[1],
+                lon: f.geometry.coordinates[0],
+                namedetails: { name: f.properties.name },
+                display_name: `${f.properties.name || ''}, ${f.properties.street || f.properties.district || ''} ${f.properties.housenumber || ''}, Oslo`.trim()
+            }));
+
+        renderOsloApiResults(osloResults, resultsContainer);
+    } catch (err) {
+        console.error('Error fetching Oslo business list:', err);
+        renderOsloApiResults([], resultsContainer);
+    }
+}
+
+function renderOsloApiResults(data, resultsContainer) {
+    // FIX: Verify data is an actual Array before calling .map()
+    if (!Array.isArray(data) || data.length === 0) {
+        resultsContainer.innerHTML = `<div style="padding: 8px 10px; font-size: 11px; color: #94a3b8;">No Oslo venues found</div>`;
+        resultsContainer.style.display = 'block';
+        return;
+    }
+
+    resultsContainer.innerHTML = data.map((item) => {
+        const title = item.namedetails?.name || item.display_name.split(',')[0];
+        const subtitle = item.display_name.split(',').slice(1, 3).join(',').trim();
+        
+        // Escape single/double quotes safely
+        const safeTitle = (title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeAddress = (item.display_name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        return `
+            <div onclick="snapToApiVenue(${item.lat}, ${item.lon}, '${safeTitle}', '${safeAddress}')" 
+                 style="
+                    padding: 7px 10px;
+                    border-bottom: 1px solid #f1f5f9;
+                    cursor: pointer;
+                    text-align: left;
+                 "
+                 onmouseover="this.style.background='#f8fafc'"
+                 onmouseout="this.style.background='#ffffff'"
+            >
+                <div style="font-size: 11.5px; font-weight: 700; color: #0f172a;">${title}</div>
+                <div style="font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${subtitle}</div>
+            </div>
+        `;
+    }).join('');
+
+    resultsContainer.style.display = 'block';
+}
+// SNAP MAP TO SELECTED AUTO-POPULATED VENUE
+window.snapToApiVenue = function(lat, lng, name, fullAddress) {
+    const targetLat = parseFloat(lat);
+    const targetLng = parseFloat(lng);
+
+    const results = document.getElementById('oslo-venue-results');
+    const input = document.getElementById('oslo-venue-search');
+
+    if (results) results.style.display = 'none';
+    if (input) input.value = name;
+
+    // Check distance restrictions against allowed posting radius
+    if (window.userLatLng && window.userLatLng.lat) {
+        const dist = getDistance(window.userLatLng.lat, window.userLatLng.lng, targetLat, targetLng);
+        if (typeof MAX_DISTANCE !== 'undefined' && dist > MAX_DISTANCE) {
+            alert(`"${name}" is outside your current allowed posting radius.`);
+            return;
+        }
+    }
+
+    // Move miniMap & pin directly to the venue coordinates
+    if (miniMap && miniMarker) {
+        isProgrammaticMove = true; 
+
+        miniMap.panTo([targetLat, targetLng], { animate: true });
+        miniMarker.setLatLng([targetLat, targetLng]);
+
+        postLatLng = { lat: targetLat, lng: targetLng };
+
+        // Update address display
+        const addressEl = document.getElementById('address-display');
+        if (addressEl) {
+            addressEl.innerText = `${name}, ${fullAddress.split(',')[0]}`;
+        } else if (typeof updateAddressDisplay === 'function') {
+            updateAddressDisplay(targetLat, targetLng);
+        }
+
+        setTimeout(() => { isProgrammaticMove = false; }, 350);
     }
 };
