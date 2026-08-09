@@ -1141,7 +1141,6 @@ function renderNextSlice() {
         let topRightOverlayHtml = '';
 // --- AUTHOR DATA & PREVIEWS ---
 const authorHandle = post.authorUsername || '';
-const formattedHandle = authorHandle ? (authorHandle.startsWith('@') ? authorHandle : `@${authorHandle}`) : '';
 
 // Gather previews for popover
 const authorPosts = allPosts.filter(p => p.authorId === post.authorId || p.authorUsername === post.authorUsername);
@@ -1153,8 +1152,8 @@ const authorPreviewsHtml = authorPosts
     .join('');
 
 // 1. INLINE USERNAME FOR DESCRIPTION (Bold text only, no avatar)
-const inlineAuthorHtml = formattedHandle 
-    ? `<strong style="font-weight: 700; color: #000000; margin-right: 6px;">${formattedHandle}</strong>` 
+const inlineAuthorHtml = authorHandle 
+    ? `<strong onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="font-weight: 700; text-decoration:underline; color: #8e011e; margin-right: 6px;">${authorHandle}</strong>` 
     : '';
 
 // 2. CLICKABLE AVATAR + POPOVER FOR ACTION ROW (RIGHT SIDE)
@@ -1168,13 +1167,13 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
             display: flex; 
             align-items: center; 
             justify-content: center;
-        " title="${formattedHandle}">
+        " title="${authorHandle}">
             <img src="${authorAvatarUrl}" style="
                 width: 24px; 
                 height: 24px; 
                 border-radius: 50%; 
                 object-fit: cover; 
-                border: 1.5px solid #ff0000;
+                border: 1.5px solid #fff;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             " />
         </button>
@@ -1211,7 +1210,7 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
                 "></div>
                 <div style="overflow: hidden; min-width: 0;">
                     <div style="font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${formattedHandle}
+                        ${authorHandle}
                     </div>
                     <div style="font-size: 11px; color: #94a3b8; font-weight: 500;">
                         ${authorPostCount} active ${authorPostCount === 1 ? 'post' : 'posts'}
@@ -1342,7 +1341,6 @@ const postSubHeaderHtml = `
         justify-content: space-between; 
         align-items: center; 
         padding: 8px 12px;
-    border-radius: 10px;
         gap: 8px;
         background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%);
         pointer-events: auto;
@@ -2166,9 +2164,27 @@ async function updateAddressDisplay(lat, lng) {
         }
     }, 500);
 }
+window.selectCategoryIcon = (cat) => {
+    // 1. Update hidden input value
+    const input = document.getElementById('postCategory');
+    if (input) input.value = cat;
+
+    // 2. Toggle active button styling
+    document.querySelectorAll('.cat-icon-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === cat);
+    });
+
+    // 3. Trigger existing subcategory update function
+    updateSubcategories();
+};
+
+// Existing subcategories update function remains unchanged!
 window.updateSubcategories = () => {
     const mainCat = document.getElementById('postCategory').value;
     const subCatSelect = document.getElementById('postSubcategory');
+    if (!subCatSelect) return;
+    
+    subCatSelect.disabled = false;
     const options = categoryMap[mainCat] || ["General"];
     subCatSelect.innerHTML = options.map(sub => `<option value="${sub}">${sub}</option>`).join('');
 };
@@ -3001,7 +3017,6 @@ window.openPreview = async () => {
     const currentMode = currentImageMode;
     const selectorHtml = `
         <div style="padding: 15px; background: #1a1a1a; border-radius: 12px; margin-bottom: 15px;">
-            <label style="color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Display Style</label>
             <div style="display: flex; gap: 10px;">
                 <button onclick="updatePreviewCrop('portrait')" id="btn-portrait" 
                     style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid ${currentMode === 'portrait' ? '#ff3100' : '#333'}; background: ${currentMode === 'portrait' ? '#ff31001a' : '#222'}; color: ${currentMode === 'portrait' ? '#ff3100' : '#888'}; cursor: pointer; font-size: 13px; font-weight: 600;">
