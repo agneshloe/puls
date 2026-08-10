@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Puls Oslo</title>
+    <title>City Pulse</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
@@ -206,7 +206,7 @@
     <!-- RIGHT SECTION: Feed Counter Only -->
     <div style="flex: 1; display: flex; gap: 8px; flex-direction: row; align-items: center; justify-content: flex-end; padding-right: 5px;">
         <div id="feed-counter-wrapper" onclick="handleFeedCounterClick()" style="position: relative; display: inline-block; vertical-align: middle; transition: transform 0.2s;">
-            <span id="feed-counter" style="font-size: 7pt; color: #2d2d2d; font-family: monospace; font-weight: 800; border: 0px solid #dcd4ca; height:32px; width:32px; padding: 10px; border-radius: 3px; display: inline-block; text-align: center; background: transparent;">0</span>
+            <span id="feed-counter" style="color: #2d2d2d; font-family: monospace; font-weight: 800; padding: 10px; border-radius: 3px; display: inline-block; text-align: center; background: transparent;">0</span>
             <div id="new-posts-alert" style="display: none; pointer-events: none; position: absolute; top: -4px; right: -4px; z-index: 10; animation: pulse-red 2s infinite;">
                 <div style="width: 10px; height: 10px; margin-top:5px; background: #ff3100; border-radius: 50%; border: 1.5px solid #000;"></div>
             </div>
@@ -220,7 +220,7 @@
         top: 100%;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 99;
+        z-index: 199;
         margin-top: 6px;
         background: rgba(30, 41, 59, 0.92);
         backdrop-filter: blur(8px);
@@ -398,10 +398,9 @@
                 Max 3 images and 1 video (15s limit).
             </div>
             <div class="input-wrapper" style="margin-top: 15px; position: relative;">
-                <textarea id="postTitle" placeholder="Title (optional)" rows="1" maxlength="280" style="width: 100%; box-sizing: border-box;"></textarea>
                 <textarea id="postDescription" placeholder="What's happening?" required rows="4" maxlength="280" style="width: 100%; box-sizing: border-box;"></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 4px;">
-                    <div id="title-error-display" style="color: #ff3100; font-size: 11px; font-weight: 600; display: none;"></div>
+                    <div id="description-error-display" style="color: #ff3100; font-size: 11px; font-weight: 600; display: none;"></div>
                     <div id="char-counter" style="font-size: 11px; color: #64748b; margin-left: auto;">0 / 280</div>
                 </div>
 <!-- SUGGESTED TAGS SECTION -->
@@ -456,7 +455,7 @@
     <input type="hidden" id="postCategory" value="Food" required>
 
     <!-- SUBCATEGORY DROPDOWN -->
-    <select id="postSubcategory" disabled required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: #f8fafc; font-size: 13px;">
+    <select id="postSubcategory" disabled style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: #f8fafc; font-size: 13px;">
         <option value="General">General</option>
     </select>
 </div>
