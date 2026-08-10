@@ -764,9 +764,19 @@ function refreshMapMarkers(posts) {
             const isInsideSafeZone = safeBounds.contains([post.lat, post.lng]);
             const targetOpacity = isInsideSafeZone ? 1.0 : 0.9;
 
-            // PREPARE POPUP CONTENT (Same as your original)
-            const words = post.title.split(' ');
-            const displayTitle = words.length > 3 ? words.slice(0, 3).join(' ') + '...' : post.title;
+            // PREPARE POPUP CONTENT (Plain text snippet preserving hashtags/mentions)
+            const rawDescription = (post.description || '').trim();
+            const words = rawDescription ? rawDescription.split(/\s+/) : [];
+            let displayTitle = words.length > 0 
+                ? (words.length > 4 ? words.slice(0, 4).join(' ') + '...' : words.join(' ')) 
+                : 'Untitled Post';
+
+            // Escape HTML characters to ensure plain text rendering
+            displayTitle = displayTitle
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
             const popupContent = `
                 <div style="text-align: center; min-width: 150px; font-family: sans-serif;">
                     <b style="color: #333;">${displayTitle}</b><br>
@@ -801,6 +811,8 @@ function refreshMapMarkers(posts) {
                     // 2. RE-ATTACH POPUP
                     if (!marker.getPopup()) {
                         marker.bindPopup(popupContent);
+                    } else {
+                        marker.setPopupContent(popupContent);
                     }
                 } else {
                     // 3. DISABLE CLICKING
@@ -834,14 +846,13 @@ function refreshMapMarkers(posts) {
         }
     });
     // --- CLEANUP ---
-        Object.keys(markersById).forEach(id => {
-            if (!currentIds.has(id)) {
-                markerGroup.removeLayer(markersById[id]);
-                delete markersById[id];
-            }
-        });
+    Object.keys(markersById).forEach(id => {
+        if (!currentIds.has(id)) {
+            markerGroup.removeLayer(markersById[id]);
+            delete markersById[id];
+        }
+    });
 }
-
 window.focusPostInFeed = (postId) => {
     // 1. Close the popup
     map.closePopup();
@@ -1043,8 +1054,7 @@ function renderNextSlice() {
                 timeVal = mins > 0 ? `${totalHoursRemaining}h ${mins}m` : `${totalHoursRemaining}h`;
             } else timeVal = `${minsRemaining}m`;
             
-            // Includes the SVG clock icon instead of "Expires in"
-            displayTimeText = `${timeVal} left`;
+            displayTimeText = `Live: ${timeVal} left`;
         }
         // --- MEDIA GALLERY LOGIC ---
         const media = post.mediaItems || [];
@@ -1089,34 +1099,24 @@ function renderNextSlice() {
         const statusLabel = isPending ? 'Scheduled' : 'Live';
 
         let timeDetailsHtml = isInfoMultiDay ? `
-            <span style="color: #aaa; font-size: 10px; text-transform: uppercase;">${statusLabel} from:</span>
-            <div style="color: #eee; font-weight: 600; margin-bottom: 4px;">${startT} - ${startDateStr}</div>
-            <span style="color: #aaa; font-size: 10px; text-transform: uppercase;">Until:</span>
-            <div style="color: #eee; font-weight: 600;">${endT} - ${endDateStr}</div>` : `
-            <span style="color: #aaa; font-size: 10px; text-transform: uppercase;">${statusLabel}:</span>
-            <div style="color: #eee; font-weight: 600; margin-top: 2px;">${startT} - ${endT}<div style="font-weight: 600; color: #eee; margin-top: 2px;">${startDateStr}</div></div>`;
-
-        const infoBtnHtml = `<div class="tooltip-container" style="position: relative; display: flex; align-items: center;">
-            <button class="info-btn" 
-                    onclick="const tt = this.querySelector('.tooltip-text'); tt.classList.toggle('visible');" 
-                    onblur="this.querySelector('.tooltip-text').classList.remove('visible')" 
-                    style="background: transparent; border:0; color: #555; padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative;">
-                
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="10" x2="12" y2="19"></line>
-                    <line x1="10" y1="10" x2="14" y2="10"></line>
-                    <line x1="9" y1="19" x2="15" y2="19"></line>
-                    <circle cx="12" cy="5" r="0.8" fill="currentColor"></circle>
-                </svg>
-
-                <span class="tooltip-text" style="visibility: hidden; opacity: 0; width: max-content; min-width: 140px; max-width: 200px; background-color: #222; color: #fff; text-align: left; border-radius: 8px; padding: 10px 12px; position: absolute; z-index: 10000; bottom: 140%; left: 0; transition: all 0.2s ease; font-size: 11px; font-family: sans-serif; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
-                    <span style="display:block; font-size: 10px; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px;">Posted ${relativeTime} by</span>
-                    <strong style="color: #339af0; display: block; margin-bottom: 6px;">${username}</strong>
-                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px;">${timeDetailsHtml}</div>
-                    <i style="position: absolute; top: 99%; left: 8px; border-width: 6px; border-style: solid; border-color: #222 transparent transparent transparent;"></i>
-                </span>
-            </button>
-        </div>`;
+            <span>${statusLabel} from:</span>
+            <div>${startT} - ${startDateStr}</div>
+            <span>Until:</span>
+            <div>${endT} - ${endDateStr}</div>` : `
+            <span>${statusLabel}:</span>
+            <div>${startT} - ${endT}<div>${startDateStr}</div></div>`;
+        // Pure detail content (No button wrapper or tooltips)
+        const infoDetailsContentHtml = `
+            <div style="font-family: sans-serif;">
+                <div style="margin-bottom: 8px;">
+                    <span>Posted ${relativeTime} by</span>
+                    <strong>${username}</strong>
+                </div>
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; color: #334155; font-size: 12px; line-height: 1.4;">
+                    ${timeDetailsHtml}
+                </div>
+            </div>
+        `;
 
         // BADGE COLORS: LIVE stays consistently green; UPCOMING stays orange
         let badgeBg = isPending ? 'rgb(59 32 10 / 0.75)' : 'rgb(19 40 30 / 0.75)';
@@ -1153,7 +1153,7 @@ const authorPreviewsHtml = authorPosts
 
 // 1. INLINE USERNAME FOR DESCRIPTION (Bold text only, no avatar)
 const inlineAuthorHtml = authorHandle 
-    ? `<strong onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="font-weight: 700; text-decoration:underline; color: #8e011e; margin-right: 6px;">${authorHandle}</strong>` 
+    ? `<strong onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="font-weight: 700; font-family:monospace; text-decoration:underline; color: #8e011e; margin-right: 6px;">${authorHandle}</strong>` 
     : '';
 
 // 2. CLICKABLE AVATAR + POPOVER FOR ACTION ROW (RIGHT SIDE)
@@ -1174,7 +1174,7 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
                 border-radius: 50%; 
                 object-fit: cover; 
                 border: 1.5px solid #fff;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             " />
         </button>
 
@@ -1427,8 +1427,8 @@ const postSubHeaderHtml = `
         if (isCurrentlyPending) {
             // SCHEDULED / UPCOMING POST: Solid orange bar (100% full)
             progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #cbcbcb; overflow: hidden; display: block;">
-                    <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #c07227;"></div>
+                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; margin:4px auto; border-radius:8px; background-color: #ddd; overflow: hidden; display: block;">
+                    <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #e69345;"></div>
                 </div>
             `;
         } else {
@@ -1441,11 +1441,11 @@ const postSubHeaderHtml = `
             if (remainingPercentage > 100) remainingPercentage = 100;
 
             progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; background-color: #cbcbcb; overflow: hidden; display: block;">
+                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; margin:4px auto; border-radius:8px; background-color: #ddd; overflow: hidden; display: block;">
                     <div class="post-progress-fill" style="
                         width: ${remainingPercentage.toFixed(2)}%; 
                         height: 100%; 
-                        background-color: #2d8b6d;
+                        background-color: #2fbe90;
                         transition: width 1s linear, background-color 0.5s ease;
                     "></div>
                 </div>
@@ -1670,90 +1670,109 @@ card.innerHTML = `
             ${reactionMediaOverlayHtml}
         </div>    
     </div>  
+            ${progressBarHtml}
     
     <div class="post-card-body" style="padding: 0;">
 
-        <!-- ACTION ROW (ACTION ICONS ON LEFT, PROFILE AVATAR ON RIGHT) -->
-        <div style="
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 8px 10px;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 11.5px;
-            border-bottom:1px solid #e9e9e9;
-            font-weight: 500;
-        ">
-            <!-- LEFT COLUMN: ACTION BUTTONS -->
-            <div style="
-                display: inline-flex; 
-                align-items: center; 
-                gap: 12px; 
-                flex-shrink: 0;
-            ">
-                <!-- 1. LIKE BUTTON + COUNT -->
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <button class="action-btn" onclick="toggleLike('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: ${heartStroke}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-                       <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="${heartFill}" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                       </svg>
-                    </button>
-                    <span id="like-count-${post.id}" style="font-size: 12px; font-weight: 600; color: #555; display: ${post.likes > 0 ? 'inline' : 'none'};">
-                        ${post.likes || 0}
-                    </span>
+    <!-- ACTION ROW -->
+<div style="
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 4px 10px 8px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 11.5px;
+    border-bottom: 1px solid #e9e9e9;
+    font-weight: 500;
+">
+    <!-- LEFT COLUMN: ACTION BUTTONS (Like, Directions, Comments) -->
+    <div style="
+        display: inline-flex; 
+        align-items: center; 
+        gap: 12px; 
+        flex-shrink: 0;
+    ">
+        <!-- 1. LIKE BUTTON + COUNT -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <button class="action-btn" onclick="toggleLike('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: ${heartStroke}; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="${heartFill}" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+               </svg>
+            </button>
+            <span id="like-count-${post.id}" style="font-size: 12px; font-weight: 600; color: #555; display: ${post.likes > 0 ? 'inline' : 'none'};">
+                ${post.likes || 0}
+            </span>
+        </div>
+        
+        <!-- 2. DIRECTIONS BUTTON -->
+        <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+        </button>
+
+        <!-- 3. COMMENTS BUTTON + COUNT -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <button class="action-btn" onclick="toggleComments('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Comments">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
+            <span id="comment-count-${post.id}" style="font-size: 12px; font-weight: 600; color: #555; display: ${(post.commentsCount || (post.comments && post.comments.length)) > 0 ? 'inline' : 'none'};">
+                ${post.commentsCount || (post.comments ? post.comments.length : 0)}
+            </span>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: PROFILE AVATAR + OPTIONS MENU BUTTON -->
+    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+        ${actionRowAvatarHtml}
+
+        <!-- OPTIONS MENU BUTTON -->
+        <div class="options-menu-container" style="position: relative; display: inline-flex; align-items: center;">
+            <button class="action-btn menu-trigger-btn" style="width: 28px; height: 28px; background: none; border: 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+            </button>
+            
+            <div class="options-tooltip" style="right: 0; left: auto;">
+                <div class="tooltip-item" onclick="openPostDetailsSheet('${post.id}')">
+                    <span>Details</span>
                 </div>
-                
-                <!-- 2. DIRECTIONS BUTTON -->
-                <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
-                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon>
-                        <line x1="9" y1="3" x2="9" y2="18"></line>
-                        <line x1="15" y1="6" x2="15" y2="21"></line>
-                    </svg>
-                </button>
-
-                <!-- 3. INFO BUTTON -->
-                <div style="flex-shrink: 0; display: flex; align-items: center;">${infoBtnHtml}</div>
-
-                <!-- 4. OPTIONS MENU BUTTON -->
-                <div class="options-menu-container" style="position: relative; display: inline-flex; align-items: center;">
-                    <button class="action-btn menu-trigger-btn" style="width: 28px; height: 28px; background: none; border: 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="12" cy="5" r="1"></circle>
-                            <circle cx="12" cy="19" r="1"></circle>
-                        </svg>
-                    </button>
-                    
-                    <div class="options-tooltip">
-                        <div class="tooltip-item" onclick="sharePost('${post.id}')">
-                            <span>Share</span>
-                        </div>
-                        ${post.authorId === userId ? `
-                        <div class="tooltip-item delete-item" onclick="confirmDelete('${post.id}')">
-                            <span>Delete</span>
-                        </div>` : ''}
-                    </div>
+                <div class="tooltip-item" onclick="sharePost('${post.id}')">
+                    <span>Share</span>
                 </div>
-            </div>
-
-            <!-- RIGHT COLUMN: CLICKABLE PROFILE AVATAR -->
-            <div style="display: flex; align-items: center; justify-content: flex-end;">
-                ${actionRowAvatarHtml}
+                ${post.authorId === userId ? `
+                <div class="tooltip-item delete-item" onclick="confirmDelete('${post.id}')">
+                    <span>Delete</span>
+                </div>` : ''}
             </div>
         </div>
+    </div>
+</div>
 
-        ${post.title ? `<div class="postTitle">${post.title}</div>` : ''}
-
+<!-- HIDDEN TEMPLATE HOLDING DETAILS CONTENT -->
+<template id="post-info-data-${post.id}">
+    ${infoDetailsContentHtml}
+</template>
         <!-- DESCRIPTION WITH BOLD USERNAME ON SAME LINE -->
         <div class="postDescription">
             ${inlineAuthorHtml}${post.description ? formatHashtags(post.description) : ''}
         </div>
 
-        <!-- POSTED TIME ROW -->
-        <div style="padding: 0px 10px 8px 10px; font-size: 11px; color: #2f2f2f; font-weight: 500;">
-            <span>${relativeTime}</span>
+        <!-- POST DETAILS ROW (UPPERCASE CATEGORY • RELATIVE TIME) -->
+        <div style="padding: 0px 10px 8px 10px; font-size: 7.5pt; color: #949494; font-weight: 500; display: flex; align-items: center; gap: 4px;">
+            <span>${relativeTime}</span>    
+            ${mainCategoryText ? `
+                    <span>•</span>
+                    <span>
+                        ${mainCategoryText}
+                    </span>
+                ` : ''}
         </div>
     </div>
 `;        
@@ -2006,9 +2025,8 @@ document.getElementById('submitPost').onclick = async () => {
     const clearMediaBtn = document.querySelector('#media-lock-overlay button'); 
     const imageMode = document.getElementById('imageAspectRatio')?.value || 'portrait';
     
-    const title = document.getElementById('postTitle')?.value.trim() || "";
     const description = document.getElementById('postDescription').value.trim();
-    const hashtagsArray = extractUniqueHashtags(`${title} ${description}`);
+    const hashtagsArray = extractUniqueHashtags(`${description}`);
     const externalLink = document.getElementById('postLink').value.trim();
     const addressText = document.getElementById('address-display').innerText;
     const category = document.getElementById('postCategory').value;
@@ -2070,7 +2088,6 @@ document.getElementById('submitPost').onclick = async () => {
 
         // --- 3. ATOMIC DATA OBJECT ---
         const finalData = {
-            title: title,
             description: description,
             hashtags: hashtagsArray,
             link: externalLink,
@@ -2482,23 +2499,23 @@ function syncSuggestedTagButtons(text) {
 function detectDuplicateHashtags(text) {
     const hashtagRegex = /(?<=^|\s)#[a-zA-Z0-9_\u00C0-\u024F]+(?=$|\s|[.,!?:;])/g;
     const matches = text.match(hashtagRegex);
-    let titleError = document.getElementById('title-error-display');
+    let descError = document.getElementById('description-error-display');
     
     if (matches) {
         const lowerTags = matches.map(t => t.trim().toLowerCase());
         const duplicates = lowerTags.filter((item, index) => lowerTags.indexOf(item) !== index);
         
-        if (duplicates.length > 0 && titleError) {
+        if (duplicates.length > 0 && descError) {
             const uniqueDup = [...new Set(duplicates)][0];
-            titleError.textContent = `Duplicate tag detected: ${uniqueDup}`;
-            titleError.style.display = "block";
+            descError.textContent = `Duplicate tag detected: ${uniqueDup}`;
+            descError.style.display = "block";
             return true;
         }
     }
     
     // Clear warning if no duplicate tags exist
-    if (titleError && titleError.textContent.startsWith('Duplicate tag')) {
-        titleError.style.display = "none";
+    if (descError && descError.textContent.startsWith('Duplicate tag')) {
+        descError.style.display = "none";
     }
     return false;
 }
@@ -2606,7 +2623,6 @@ document.getElementById('addPostBtn').onclick = () => {
     renderPopularTags();
 
     // 2. Clear Form States
-    document.getElementById('postTitle').value = '';
     document.getElementById('postDescription').value = '';
     document.getElementById('postCategory').value = "";
     const subCatSelect = document.getElementById('postSubcategory');
@@ -2807,11 +2823,9 @@ window.closeModal = () => {
         // --- CLEAR PREVIEW & TEXT ---
         const previewContent = document.getElementById('previewContent');
         if (previewContent) previewContent.innerHTML = '';
-        const postTitle = document.getElementById('postTitle');
         const postDescription = document.getElementById('postDescription');
         const postLink = document.getElementById('postLink');
         
-        if (postTitle) postTitle.value = '';
         if (postDescription) postDescription.value = '';
         if (postLink) postLink.value = '';
 
@@ -2843,14 +2857,12 @@ window.closeModal = () => {
         
         // --- RESET ERROR DISPLAYS ---
         const mediaInfo = document.getElementById('media-info-display');
-        const titleError = document.getElementById('title-error-display');
         const descError = document.getElementById('desc-error-display');
         
         if (mediaInfo) {
             mediaInfo.innerText = "Max 3 images and 1 video (15s limit).";
             mediaInfo.style.color = "#007AFF";
         }
-        if (titleError) titleError.style.display = "none";
         if (descError) descError.style.display = "none";
 
         // --- RESET SELECTS ---
@@ -3427,7 +3439,6 @@ async function updateButtonStates() {
 }
 // Add the new IDs to your watch list
 const inputsToWatch = [
-    'postTitle', 
     'postDescription', 
     'postCategory', 
     'postSubcategory', 
@@ -3859,7 +3870,6 @@ setInterval(() => {
     });
 
     // --- 2. LIVE COUNTDOWN TIMER UPDATES ---
-// --- 2. LIVE COUNTDOWN TIMER UPDATES ---
     timers.forEach(timer => {
         const startTime = parseInt(timer.dataset.start);
         const endTime = parseInt(timer.dataset.expiry);
@@ -3887,7 +3897,7 @@ setInterval(() => {
             }
 
             // Replace text prefix with inline SVG icon
-            const newHtml = `${timeVal} left`;
+            const newHtml = `Live: ${timeVal} left`;
 
             if (timer.innerHTML !== newHtml) {
                 timer.innerHTML = newHtml;
@@ -4908,11 +4918,9 @@ function formatHashtags(text) {
 window.filterFeedByHashtag = function(tag) {
     const cleanTag = tag.startsWith('#') ? tag.substring(1) : tag;
 
-    // Filter posts that contain the hashtag in their description or title
+    // Filter posts that contain the hashtag in their description
     allFilteredPosts = allPosts.filter(p => {
-        const descMatch = p.description && p.description.toLowerCase().includes(`#${cleanTag.toLowerCase()}`);
-        const titleMatch = p.title && p.title.toLowerCase().includes(`#${cleanTag.toLowerCase()}`);
-        return descMatch || titleMatch;
+        return p.description && p.description.toLowerCase().includes(`#${cleanTag.toLowerCase()}`);
     });
 
     // Update floating filter banner
@@ -5221,4 +5229,83 @@ window.snapToApiVenue = function(lat, lng, name, fullAddress) {
 
         setTimeout(() => { isProgrammaticMove = false; }, 350);
     }
+};
+
+// --- BOTTOM SHEET DETAILS POPUP HANDLERS ---
+window.openPostDetailsSheet = function(postId) {
+    // 1. Check if bottom sheet element exists, or create it dynamically
+    let sheet = document.getElementById('post-details-bottom-sheet');
+    let overlay = document.getElementById('post-details-overlay');
+
+    if (!sheet) {
+        // Overlay background
+        overlay = document.createElement('div');
+        overlay.id = 'post-details-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        `;
+        overlay.onclick = closePostDetailsSheet;
+        document.body.appendChild(overlay);
+
+        // Bottom Sheet modal
+        sheet = document.createElement('div');
+        sheet.id = 'post-details-bottom-sheet';
+        sheet.style.cssText = `
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 19999;
+            background: #ffffff;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            padding: 20px 16px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 80vh;
+            overflow-y: auto;
+        `;
+        document.body.appendChild(sheet);
+    }
+
+    // 2. Fetch the post info content from the template
+    const template = document.getElementById(`post-info-data-${postId}`);
+    const infoContent = template ? template.innerHTML : '<p style="color:#64748b; font-size:13px;">No additional details available.</p>';
+
+    // 3. Populate sheet with handle drag bar and details content
+    sheet.innerHTML = `
+        <div style="width: 36px; height: 4px; background: #cbd5e1; border-radius: 2px; margin: 0 auto 16px auto;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">Post Details</h4>
+            <button onclick="closePostDetailsSheet()" style="background: none; border: none; font-size: 18px; color: #64748b; cursor: pointer; padding: 0;">✕</button>
+        </div>
+        <div class="sheet-details-body" style="font-size: 13px; color: #334155; line-height: 1.5;">
+            ${infoContent}
+        </div>
+    `;
+
+    // 4. Slide up transition
+    overlay.style.display = 'block';
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        sheet.style.transform = 'translateY(0)';
+    }, 10);
+};
+
+window.closePostDetailsSheet = function() {
+    const sheet = document.getElementById('post-details-bottom-sheet');
+    const overlay = document.getElementById('post-details-overlay');
+    if (!sheet || !overlay) return;
+
+    sheet.style.transform = 'translateY(100%)';
+    overlay.style.opacity = '0';
+
+    setTimeout(() => {
+        overlay.style.display = 'none';
+    }, 250);
 };
