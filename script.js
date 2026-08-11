@@ -1001,21 +1001,19 @@ function renderNextSlice() {
         } else {
             distanceBadge = `-`;
         }
-        // --- TIMER & DATE FORMATTING LOGIC ---
+// --- TIMER & DATE FORMATTING LOGIC ---
         const isPending = startTime > now;
         const expirationTime = startTime + lifespanMs;
         const isExpired = now > expirationTime; 
         const timeRemainingMs = expirationTime - now;
         let minsRemaining = Math.max(0, Math.floor(timeRemainingMs / 60000));
         
-        // Date objects for start and end times
+        // Date objects for start time
         const startDateObj = new Date(startTime);
-        const endDateObj = new Date(expirationTime);
         const lifespanHoursVal = (post.lifespanHours || 24);
 
         // Helper formatting
         const startDay = startDateObj.getDate();
-        const endDay = endDateObj.getDate();
         const monthStr = startDateObj.toLocaleDateString('no-NO', { month: 'short' }).replace('.', '').toLowerCase(); // e.g. "aug"
 
         // Time formatting: "12" if minutes are 00, otherwise "12:30"
@@ -1026,25 +1024,21 @@ function renderNextSlice() {
         let formattedUpcomingDate = '';
 
         if (lifespanHoursVal >= 24) {
-            // Multi-day / long post -> "2.-3. aug" or "31. jul-2. aug" (if month changes)
-            const endMonthStr = endDateObj.toLocaleDateString('no-NO', { month: 'short' }).replace('.', '').toLowerCase();
-            if (monthStr === endMonthStr) {
-                formattedUpcomingDate = `${startDay}.-${endDay}. ${monthStr}`;
-            } else {
-                formattedUpcomingDate = `${startDay}. ${monthStr}-${endDay}. ${endMonthStr}`;
-            }
+            // Multi-day / long post -> Just show start date: "Starting 12. aug"
+            formattedUpcomingDate = `Live ${startDay}. ${monthStr}`;
         } else {
-            // 12h or short post -> "2. aug kl. 12" (or "2. aug kl. 12:30")
-            formattedUpcomingDate = `${startDay}. ${monthStr} kl. ${startTimeStr}`;
+            // Short post -> Include time: "Starting 12. aug kl. 12"
+            formattedUpcomingDate = `Live ${startDay}. ${monthStr} kl. ${startTimeStr}`;
         }
 
         let displayTimeText = '';
+        let timerTextColor = '#64748b'; // Default text color
 
         if (isPending) {
-            // Upcoming post -> Display dynamic event date string
+            // Upcoming post -> Display simplified start date
             displayTimeText = formattedUpcomingDate;
         } else {
-            // Live post -> Calculate remaining time countdown with SVG icon
+            // Live post -> Calculate remaining time countdown
             let timeVal;
             const totalHoursRemaining = Math.floor(minsRemaining / 60);
             if (minsRemaining >= 2160) timeVal = `${Math.round(minsRemaining / 1440)}d`;
@@ -1054,7 +1048,12 @@ function renderNextSlice() {
                 timeVal = mins > 0 ? `${totalHoursRemaining}h ${mins}m` : `${totalHoursRemaining}h`;
             } else timeVal = `${minsRemaining}m`;
             
-            displayTimeText = `Live: ${timeVal} left`;
+            displayTimeText = `${timeVal} left`;
+
+            // Instantly turn red if less than 30 minutes remaining
+            if (minsRemaining < 30) {
+                timerTextColor = '#ca2727';
+            }
         }
         // --- MEDIA GALLERY LOGIC ---
         const media = post.mediaItems || [];
@@ -1174,6 +1173,7 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
                 border-radius: 50%; 
                 object-fit: cover; 
                 border: 1.5px solid #fff;
+                background-color:#fff;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             " />
         </button>
@@ -1320,7 +1320,7 @@ const locateBtnHtml = `
         justify-content: center; 
         flex-shrink: 0; 
         transition: transform 0.2s;
-        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
     ">
         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -1328,8 +1328,95 @@ const locateBtnHtml = `
         </svg>
     </button>
 `;
+        
+        // --- PROGRESS BAR CALCULATION LOGIC ---
+        const lifespanHours = Number(post.lifespanHours) || 24;
+        const POST_LIFESPAN_MS = lifespanHours * 60 * 60 * 1000;
+        let progressBarHtml = '';
 
-// --- FROSTED OVERLAY TOP SUB-HEADER (LOCATION ON LEFT, TIME REMAINING ON RIGHT) ---
+        const isCurrentlyPending = startTime > now;
+        
+        if (isCurrentlyPending) {
+            // SCHEDULED / UPCOMING POST: 6px orange bar with overlapping text below
+            progressBarHtml = `
+                <div style="position: relative; width: 100%; height: 6px; margin: 4px auto; z-index: 10;">
+                    <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; border-radius: 8px; background-color: #ddd; overflow: hidden; display: block;">
+                        <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #c07227;"></div>
+                    </div>
+                    <!-- Overlapping centered text -->
+                    <span style="
+                        position: absolute; 
+                        top: 8px; 
+                        left: 50%; 
+                        transform: translateX(-50%); 
+                        font-size: 9.5px; 
+                        font-weight: 700; 
+                        color: #64748b; 
+                        white-space: nowrap; 
+                        pointer-events: none;
+                        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+                    ">
+                        ${displayTimeText}
+                    </span>
+                </div>
+            `;
+        } else {
+            // LIVE POST: 6px green shrinking bar with overlapping text below
+            const elapsedTime = now - startTime;
+            const remainingTime = POST_LIFESPAN_MS - elapsedTime;
+
+            let remainingPercentage = (remainingTime / POST_LIFESPAN_MS) * 100;
+            if (remainingPercentage < 0) remainingPercentage = 0;
+            if (remainingPercentage > 100) remainingPercentage = 100;
+
+            progressBarHtml = `
+                <div style="position: relative; width: 100%; height: 6px; margin: 4px auto; z-index: 10;">
+                    <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; border-radius: 8px; background-color: #cbd0d8; overflow: hidden; display: block;">
+                        <div class="post-progress-fill" style="
+                            width: ${remainingPercentage.toFixed(2)}%; 
+                            height: 100%; 
+                            background-color: #2d8b6d;
+                            transition: width 1s linear, background-color 0.5s ease;
+                        "></div>
+                    </div>
+                    <!-- Overlapping centered text -->
+                    <span style="
+                        position: absolute; 
+                        top: 8px; 
+                        left: 50%; 
+                        transform: translateX(-50%); 
+                        font-size: 9.5px; 
+                        font-weight: 700; 
+                        color: ${timerTextColor};
+                        white-space: nowrap; 
+                        pointer-events: none;
+                        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+                    ">
+                        ${displayTimeText}
+                    </span>
+                </div>
+            `;
+        }
+// --- DYNAMIC STATUS ICON (ORANGE CALENDAR FOR SCHEDULED, NONE FOR LIVE) ---
+let postStatusIndicatorHtml = '';
+
+if (isExpired) {
+    postStatusIndicatorHtml = `<span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">EXPIRED</span>`;
+} else if (isCurrentlyPending) {
+    // Scheduled Post - Orange Calendar
+    postStatusIndicatorHtml = `
+        <div style="display: flex; align-items: center; gap: 4.5px; color: #e69345;">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.8));">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+        </div>
+    `;
+}
+
+// --- FROSTED OVERLAY TOP SUB-HEADER (LOCATION ON LEFT, STATUS ON RIGHT) ---
 const postSubHeaderHtml = `
     <div class="post-sub-header-overlay" style="
         position: absolute;
@@ -1341,6 +1428,7 @@ const postSubHeaderHtml = `
         justify-content: space-between; 
         align-items: center; 
         padding: 8px 12px;
+        border-radius: 6px;
         gap: 8px;
         background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%);
         pointer-events: auto;
@@ -1380,7 +1468,7 @@ const postSubHeaderHtml = `
                     <span style="
                         font-size: 10px;
                         font-weight: 500;
-                        color: rgba(255, 255, 255, 0.8);
+                        color: rgba(231, 231, 231);
                         white-space: nowrap; 
                         overflow: hidden; 
                         text-overflow: ellipsis;
@@ -1392,65 +1480,12 @@ const postSubHeaderHtml = `
             </div>
         </div>
 
-        <!-- RIGHT SIDE: TIME REMAINING BADGE -->
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #ffffff;
-            font-size: 11.5px;
-            font-weight: 600;
-            white-space: nowrap;
-            flex-shrink: 0;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        ">
-            <span>
-                ${isExpired ? `
-                    <span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase;">EXPIRED</span>
-                ` : `
-                    <span class="pulse-timer" data-start="${startTime}" data-expiry="${expirationTime}">
-                        ${displayTimeText}
-                    </span>
-                `}
-            </span>
+        <!-- RIGHT SIDE: SVG STATUS BADGE -->
+        <div style="flex-shrink: 0;">
+            ${postStatusIndicatorHtml}
         </div>
     </div>
 `;
-        
-        // --- PROGRESS BAR CALCULATION LOGIC ---
-        const lifespanHours = Number(post.lifespanHours) || 24;
-        const POST_LIFESPAN_MS = lifespanHours * 60 * 60 * 1000;
-        let progressBarHtml = '';
-
-        const isCurrentlyPending = startTime > now;
-
-        if (isCurrentlyPending) {
-            // SCHEDULED / UPCOMING POST: Solid orange bar (100% full)
-            progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; margin:4px auto; border-radius:8px; background-color: #ddd; overflow: hidden; display: block;">
-                    <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #e69345;"></div>
-                </div>
-            `;
-        } else {
-            // LIVE POST: Green bar shrinking to the left over time
-            const elapsedTime = now - startTime;
-            const remainingTime = POST_LIFESPAN_MS - elapsedTime;
-
-            let remainingPercentage = (remainingTime / POST_LIFESPAN_MS) * 100;
-            if (remainingPercentage < 0) remainingPercentage = 0;
-            if (remainingPercentage > 100) remainingPercentage = 100;
-
-            progressBarHtml = `
-                <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; margin:4px auto; border-radius:8px; background-color: #ddd; overflow: hidden; display: block;">
-                    <div class="post-progress-fill" style="
-                        width: ${remainingPercentage.toFixed(2)}%; 
-                        height: 100%; 
-                        background-color: #2fbe90;
-                        transition: width 1s linear, background-color 0.5s ease;
-                    "></div>
-                </div>
-            `;
-        }
         
         // Calculate total reactions & setup user choice state
         const counts = post.reactions || { interested: 0, countMeIn: 0, goodTip: 0 };
@@ -1726,7 +1761,7 @@ card.innerHTML = `
     </div>
 
     <!-- RIGHT COLUMN: PROFILE AVATAR + OPTIONS MENU BUTTON -->
-    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+    <div style="display: flex; align-items: center; gap: 2px; justify-content: flex-end;">
         ${actionRowAvatarHtml}
 
         <!-- OPTIONS MENU BUTTON -->
@@ -2967,7 +3002,7 @@ function getFormattedTime(post) {
     const diffSec = Math.floor(diffMs / 1000);
     
     // 1. Just now (less than 1 minute)
-    if (diffSec < 60) return "just now";
+    if (diffSec < 60) return "Just now";
 
     // 2. Minutes (less than 1 hour)
     const diffMin = Math.floor(diffSec / 60);
@@ -3838,50 +3873,43 @@ function getDistance(lat1, lon1, lat2, lon2) {
 
 setInterval(() => {
     const now = Date.now();
-    const timers = document.querySelectorAll('.pulse-timer');
     const progressTracks = document.querySelectorAll('.post-progress-track');
 
-    // --- 1. LIVE PROGRESS BAR UPDATES ---
     progressTracks.forEach(track => {
         const startTime = parseInt(track.dataset.start);
         const lifespanMs = parseInt(track.dataset.lifespan);
         const fill = track.querySelector('.post-progress-fill');
         
-        if (!fill || !startTime || !lifespanMs) return;
+        // Target the span that sits directly next to the track in your HTML wrapper
+        const textSpan = track.nextElementSibling; 
+        
+        if (!fill || !startTime || !lifespanMs || !textSpan) return;
 
+        const endTime = startTime + lifespanMs;
         const isPending = startTime > now;
 
         if (isPending) {
-            // Still scheduled -> Full orange bar
+            // SCHEDULED: Full orange bar
             fill.style.width = '100%';
             fill.style.backgroundColor = '#c07227';
-        } else {
-            // Post is live -> Calculate active percentage remaining
-            const elapsedTime = now - startTime;
-            const remainingTime = lifespanMs - elapsedTime;
-            let remainingPercentage = (remainingTime / lifespanMs) * 100;
+            
+            // The text remains as the original start date/time (e.g., "12. aug kl 12") 
+            // until it becomes live, so no text update is needed here.
+            
+        } else if (now < endTime) {
+            // LIVE: Calculate shrinking green bar and countdown text
+            const remainingTimeMs = endTime - now;
+            let remainingPercentage = (remainingTimeMs / lifespanMs) * 100;
 
             if (remainingPercentage < 0) remainingPercentage = 0;
             if (remainingPercentage > 100) remainingPercentage = 100;
 
+            // 1. Update Bar
             fill.style.width = `${remainingPercentage.toFixed(2)}%`;
             fill.style.backgroundColor = '#2d8b6d';
-        }
-    });
 
-    // --- 2. LIVE COUNTDOWN TIMER UPDATES ---
-    timers.forEach(timer => {
-        const startTime = parseInt(timer.dataset.start);
-        const endTime = parseInt(timer.dataset.expiry);
-        
-        const postCard = timer.closest('.post-card');
-        const wrapper = postCard ? postCard.querySelector('.badge-wrapper') : null;
-        const timerContainer = timer.parentElement; 
-        
-        // --- CASE: POST IS NOW LIVE ---
-        if (now >= startTime && now < endTime) {
-            const timeRemainingMs = endTime - now;
-            const minsRemaining = Math.max(0, Math.floor(timeRemainingMs / 60000));
+            // 2. Update Text Countdown
+            const minsRemaining = Math.max(0, Math.floor(remainingTimeMs / 60000));
             const totalHoursRemaining = Math.floor(minsRemaining / 60);
 
             let timeVal;
@@ -3896,31 +3924,28 @@ setInterval(() => {
                 timeVal = `${minsRemaining}m`;
             }
 
-            // Replace text prefix with inline SVG icon
-            const newHtml = `Live: ${timeVal} left`;
-
-            if (timer.innerHTML !== newHtml) {
-                timer.innerHTML = newHtml;
+            const newText = `${timeVal} left`;
+            if (textSpan.textContent.trim() !== newText) {
+                textSpan.textContent = newText;
             }
 
-            // Keep LIVE badge standard green
-            if (wrapper) {
-                wrapper.style.backgroundColor = 'rgb(19 40 30 / 0.75)';
-                wrapper.style.color = '#69dbb6';
-                wrapper.style.borderColor = 'rgba(64, 192, 87, 0.3)';
+            // 3. Turn text red if under 30 minutes
+            if (minsRemaining < 30) {
+                textSpan.style.color = '#ca2727';
+            } else {
+                textSpan.style.color = '#64748b'; // Default text color
             }
 
-            // Turn urgent red when under 30 mins
-            if (timerContainer) {
-                if (minsRemaining < 30) {
-                    timerContainer.style.color = '#ca2727';
-                } else {
-                    timerContainer.style.color = 'inherit';
-                }
+        } else {
+            // EXPIRED: Hide bar, mark text as expired
+            fill.style.width = '0%';
+            if (textSpan.textContent !== 'Expired') {
+                textSpan.textContent = 'Expired';
+                textSpan.style.color = '#ca2727';
             }
         }
     });
-}, 60000);
+}, 60000); // Runs every 1 minute
 
 window.sharePost = async (postId) => {
     // You can customize the message or URL per post
@@ -4902,17 +4927,27 @@ window.filterFeedByUser = function(authorId, authorUsername) {
 function formatHashtags(text) {
     if (!text) return '';
     
+    // 1. MATCH AND FORMAT HASHTAGS FIRST
     // Only matches #hashtags preceded by start-of-string or whitespace, 
     // and followed by end-of-string, whitespace, or punctuation.
     const hashtagRegex = /(?<=^|\s)#[a-zA-Z0-9_\u00C0-\u024F]+(?=$|\s|[.,!?:;])/g;
     
-    return text.replace(hashtagRegex, (match) => {
+    let formattedText = text.replace(hashtagRegex, (match) => {
         const tag = match.trim().substring(1); // Remove the '#'
         return `<span onclick="filterFeedByHashtag('${tag}')" class="hashtags" style="
             cursor: pointer; 
             transition: color 0.15s ease;
         " onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='#2563eb'">${match}</span>`;
     });
+
+    // 2. FORMAT NEW LINES
+    // Optional: Collapses 3 or more consecutive new lines down to just 2 (prevents spamming empty space)
+    formattedText = formattedText.replace(/(?:\r?\n){3,}/g, '\n\n');
+    
+    // Convert the remaining new lines to HTML line breaks so they render in the feed
+    formattedText = formattedText.replace(/\r?\n/g, '<br>');
+
+    return formattedText;
 }
 
 window.filterFeedByHashtag = function(tag) {
