@@ -153,7 +153,6 @@ header {
     margin: 7px auto 10px auto;
     background: transparent;
     padding: 0;
-    border-radius: 15px;
 }
 .post-card:first-child {
     /* border:0 !important; */
@@ -437,6 +436,7 @@ body.modal-open {
     /* Remove any default padding that might cause a gap */
     padding: 0;
     margin: 0;
+    border-radius:6px;
 }
 
 .image-gallery img, 
@@ -1327,7 +1327,7 @@ h3 {
 
 .header-link {
     flex: 1;
-    max-width: 100px;
+    max-width: 70px;
     z-index: 100;
     text-align: center;
     position: relative;
