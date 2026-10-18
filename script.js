@@ -1061,14 +1061,43 @@ function renderNextSlice() {
         const imageMode = post.imageMode || 'portrait'; 
         const modeClass = imageMode === 'landscape' ? 'mode-landscape' : 'mode-portrait';
 
-        if (media.length > 0) {
-            const itemsHtml = media.map(item => {
-                if (item.type === 'video') {
-                    return `<video src="${item.url}" muted loop playsinline autoplay style="width:100%; height:100%; object-fit:cover;"></video>`;
-                } else {
-                    return `<img src="${item.url}" loading="lazy" alt="Post content" style="width:100%; height:100%; object-fit:cover;">`;
-                }
-            }).join('');
+            if (media.length > 0) {
+                        const itemsHtml = media.map(item => {
+                            if (item.type === 'video') {
+                                return `
+                                    <div style="position: relative; width: 100%; height: 100%; flex: 0 0 100%;">
+                                        <video class="feed-video" src="${item.url}" muted loop playsinline autoplay style="width:100%; height:100%; object-fit:cover;"></video>
+                                        <button class="video-mute-btn" onclick="toggleVideoSound(event, this)" style="
+                                            position: absolute; 
+                                            bottom: 12px; 
+                                            left: 12px; 
+                                            background: rgba(0,0,0,0.5); 
+                                            backdrop-filter: blur(4px);
+                                            border: none; 
+                                            border-radius: 50%; 
+                                            color: white; 
+                                            width: 32px; 
+                                            height: 32px; 
+                                            display: flex; 
+                                            align-items: center; 
+                                            justify-content: center; 
+                                            cursor: pointer; 
+                                            z-index: 50;
+                                            transition: background 0.2s ease;
+                                        ">
+                                            <!-- Muted SVG (Default state) -->
+                                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                                <line x1="23" y1="9" x2="17" y2="15"></line>
+                                                <line x1="17" y1="9" x2="23" y2="15"></line>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                `;
+                            } else {
+                                return `<img src="${item.url}" loading="lazy" alt="Post content" style="width:100%; height:100%; object-fit:cover; flex: 0 0 100%;">`;
+                            }
+                        }).join('');
 
             const navArrows = media.length > 1 ? `
                 <button class="nav-arrow left hidden" onclick="scrollGallery(this, -1)" style="left: 0px;">
@@ -1249,7 +1278,7 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
             bottomLeftOverlayHtml = `
                 <div style="
                     position: absolute; 
-                    bottom: 16px; 
+                    bottom: 50px; 
                     left: 12px; 
                     z-index: 10; 
                     pointer-events: auto;
@@ -1844,6 +1873,7 @@ card.innerHTML = `
     });
 
     currentSliceIndex += nextBatch.length;
+    window.observeFeedVideos();
 }
 window.confirmDelete = (postId) => {
     if (confirm("Are you sure you want to delete this post?")) {
@@ -5330,4 +5360,59 @@ window.closePostDetailsSheet = function() {
     setTimeout(() => {
         overlay.style.display = 'none';
     }, 250);
+};
+
+window.toggleVideoSound = function(event, btn) {
+    // Prevent the click from triggering the gallery scroll or opening the post
+    event.stopPropagation(); 
+    
+    // Find the video element right before the button in the HTML
+    const video = btn.previousElementSibling; 
+    
+    if (video.muted) {
+        video.muted = false;
+        btn.innerText = "🔊";
+    } else {
+        video.muted = true;
+        btn.innerText = "🔇";
+    }
+};
+
+// Create a global observer for feed videos
+window.videoScrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        const video = entry.target;
+        const toggleBtn = video.nextElementSibling; // Grabs the mute button below it
+
+        if (entry.isIntersecting) {
+            // Video is in view: Unmute
+            video.muted = false;
+            if (toggleBtn) toggleBtn.innerText = "🔊";
+            
+            // Ensure it is playing (some mobile browsers pause when unmuted)
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // If browser blocks unmuted autoplay, fall back to muted
+                    video.muted = true;
+                    if (toggleBtn) toggleBtn.innerText = "🔇";
+                });
+            }
+        } else {
+            // Video left view: Mute
+            video.muted = true;
+            if (toggleBtn) toggleBtn.innerText = "🔇";
+        }
+    });
+}, {
+    threshold: 0.6 // Triggers when 60% of the video is visible
+});
+
+// Helper function to find and observe all un-observed videos
+window.observeFeedVideos = function() {
+    const videos = document.querySelectorAll('.feed-video:not(.is-observed)');
+    videos.forEach(video => {
+        video.classList.add('is-observed'); // Mark as observed so we don't attach twice
+        window.videoScrollObserver.observe(video);
+    });
 };
