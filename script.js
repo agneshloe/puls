@@ -1025,10 +1025,10 @@ function renderNextSlice() {
 
         if (lifespanHoursVal >= 24) {
             // Multi-day / long post -> Just show start date: "Starting 12. aug"
-            formattedUpcomingDate = `Live ${startDay}. ${monthStr}`;
+            formattedUpcomingDate = `${startDay}<br>${monthStr}`;
         } else {
             // Short post -> Include time: "Starting 12. aug kl. 12"
-            formattedUpcomingDate = `Live ${startDay}. ${monthStr} kl. ${startTimeStr}`;
+            formattedUpcomingDate = `${startDay}<br>${monthStr}`;
         }
 
         let displayTimeText = '';
@@ -1071,10 +1071,10 @@ function renderNextSlice() {
             }).join('');
 
             const navArrows = media.length > 1 ? `
-                <button class="nav-arrow left hidden" onclick="scrollGallery(this, -1)" style="left: 10px;">
+                <button class="nav-arrow left hidden" onclick="scrollGallery(this, -1)" style="left: 0px;">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="#fff" stroke-width="3" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
-                <button class="nav-arrow right" onclick="scrollGallery(this, 1)" style="right: 10px;">
+                <button class="nav-arrow right" onclick="scrollGallery(this, 1)" style="right: 0px;">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="#fff" stroke-width="3" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
                 <div class="gallery-dots">
@@ -1137,7 +1137,7 @@ function renderNextSlice() {
             authorAvatarUrl = localStorage.getItem(`pulse_avatar_${currentUserId}`) || null;
         }
 // --- MEDIA OVERLAYS (AUTHOR BOTTOM-LEFT & LINK TOP-RIGHT) ---
-        let topRightOverlayHtml = '';
+        let bottomLeftOverlayHtml = '';
 // --- AUTHOR DATA & PREVIEWS ---
 const authorHandle = post.authorUsername || '';
 
@@ -1246,7 +1246,7 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
 
 // 2. EXTERNAL LINK PILL (TOP RIGHT)
         if (post.link) {
-            topRightOverlayHtml = `
+            bottomLeftOverlayHtml = `
                 <div style="
                     position: absolute; 
                     bottom: 16px; 
@@ -1332,91 +1332,89 @@ const locateBtnHtml = `
         // --- PROGRESS BAR CALCULATION LOGIC ---
         const lifespanHours = Number(post.lifespanHours) || 24;
         const POST_LIFESPAN_MS = lifespanHours * 60 * 60 * 1000;
-        let progressBarHtml = '';
 
-        const isCurrentlyPending = startTime > now;
-        
-        if (isCurrentlyPending) {
-            // SCHEDULED / UPCOMING POST: 6px orange bar with overlapping text below
-            progressBarHtml = `
-                <div style="position: relative; width: 100%; height: 6px; margin: 4px auto; z-index: 10;">
-                    <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; border-radius: 8px; background-color: #ddd; overflow: hidden; display: block;">
-                        <div class="post-progress-fill" style="width: 100%; height: 100%; background-color: #c07227;"></div>
-                    </div>
-                    <!-- Overlapping centered text -->
-                    <span style="
-                        position: absolute; 
-                        top: 8px; 
-                        left: 50%; 
-                        transform: translateX(-50%); 
-                        font-size: 9.5px; 
-                        font-weight: 700; 
-                        color: #64748b; 
-                        white-space: nowrap; 
-                        pointer-events: none;
-                        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
-                    ">
-                        ${displayTimeText}
-                    </span>
-                </div>
-            `;
-        } else {
-            // LIVE POST: 6px green shrinking bar with overlapping text below
-            const elapsedTime = now - startTime;
-            const remainingTime = POST_LIFESPAN_MS - elapsedTime;
-
-            let remainingPercentage = (remainingTime / POST_LIFESPAN_MS) * 100;
-            if (remainingPercentage < 0) remainingPercentage = 0;
-            if (remainingPercentage > 100) remainingPercentage = 100;
-
-            progressBarHtml = `
-                <div style="position: relative; width: 100%; height: 6px; margin: 4px auto; z-index: 10;">
-                    <div class="post-progress-track" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="width: 100%; height: 6px; border-radius: 8px; background-color: #cbd0d8; overflow: hidden; display: block;">
-                        <div class="post-progress-fill" style="
-                            width: ${remainingPercentage.toFixed(2)}%; 
-                            height: 100%; 
-                            background-color: #2d8b6d;
-                            transition: width 1s linear, background-color 0.5s ease;
-                        "></div>
-                    </div>
-                    <!-- Overlapping centered text -->
-                    <span style="
-                        position: absolute; 
-                        top: 8px; 
-                        left: 50%; 
-                        transform: translateX(-50%); 
-                        font-size: 9.5px; 
-                        font-weight: 700; 
-                        color: ${timerTextColor};
-                        white-space: nowrap; 
-                        pointer-events: none;
-                        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
-                    ">
-                        ${displayTimeText}
-                    </span>
-                </div>
-            `;
-        }
-// --- DYNAMIC STATUS ICON (ORANGE CALENDAR FOR SCHEDULED, NONE FOR LIVE) ---
+// --- DYNAMIC STATUS ICON (STORY RING PROGRESS BAR) ---
 let postStatusIndicatorHtml = '';
+
+// Smaller Circle properties for a 36x36 container (Radius 16)
+const radius = 16;
+const circumference = 2 * Math.PI * radius; // Approx 100.53
+const isCurrentlyPending = startTime > now;
+
+// Format text to stack neatly inside the smaller circle
+let ringText = displayTimeText;
+if (isCurrentlyPending) {
+    // Strip "Starting " completely, and change " kl. " to a line break
+    ringText = ringText.replace('Starting ', '').replace(' kl. ', '<br>');
+} else {
+    // Live posts: remove " left" and break "1h 30m" onto two lines
+    ringText = ringText.replace(' left', '').replace(' ', '<br>');
+}
 
 if (isExpired) {
     postStatusIndicatorHtml = `<span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">EXPIRED</span>`;
 } else if (isCurrentlyPending) {
-    // Scheduled Post - Orange Calendar
+    // SCHEDULED / UPCOMING POST: Solid orange ring with exact frosted backing
     postStatusIndicatorHtml = `
-        <div style="display: flex; align-items: center; gap: 4.5px; color: #e69345;">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.8));">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
+        <div class="story-ring-container" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="
+            position: relative; 
+            width: 36px; 
+            height: 36px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5); /* Frosted dark backing */
+            backdrop-filter: blur(4px);    /* Exact same blur as the address pill */
+            border-radius: 50%;
+        ">
+            <svg width="36" height="36" style="position: absolute; top: 0; left: 0; transform: rotate(-90deg); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                <!-- Outer circle stroke now sits on top of the DOM backing -->
+                <circle cx="18" cy="18" r="${radius}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"></circle>
+                <circle class="post-progress-fill" cx="18" cy="18" r="${radius}" fill="none" stroke="#c07227" stroke-width="2" stroke-dasharray="${circumference}" stroke-dashoffset="0" stroke-linecap="round"></circle>
             </svg>
+            <span class="ring-timer-text" style="position: relative; z-index: 2; font-size: 10px; font-weight: 700; color: #ffffff; text-align: center; line-height: 1; max-width: 32px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
+                ${ringText}
+            </span>
+        </div>
+    `;
+} else {
+    // LIVE POST: Shrinking green ring with exact frosted backing
+    const elapsedTime = now - startTime;
+    const remainingTime = POST_LIFESPAN_MS - elapsedTime;
+
+    let remainingPercentage = (remainingTime / POST_LIFESPAN_MS) * 100;
+    if (remainingPercentage < 0) remainingPercentage = 0;
+    if (remainingPercentage > 100) remainingPercentage = 100;
+
+    const offset = circumference - (remainingPercentage / 100) * circumference;
+    const displayColor = timerTextColor === '#64748b' ? '#ffffff' : timerTextColor;
+    const strokeColor = timerTextColor === '#64748b' ? '#2d8b6d' : timerTextColor;
+
+    postStatusIndicatorHtml = `
+        <div class="story-ring-container" data-start="${startTime}" data-lifespan="${POST_LIFESPAN_MS}" style="
+            position: relative; 
+            width: 36px; 
+            height: 36px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5); /* Frosted dark backing */
+            backdrop-filter: blur(4px);    /* Exact same blur as the address pill */
+            border-radius: 50%;
+        ">
+            <svg width="36" height="36" style="position: absolute; top: 0; left: 0; transform: rotate(-90deg); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                <!-- Outer circle stroke now sits on top of the DOM backing -->
+                <circle cx="18" cy="18" r="${radius}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"></circle>
+                <circle class="post-progress-fill" cx="18" cy="18" r="${radius}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round" style="transition: stroke-dashoffset 1s linear, stroke 0.5s ease;"></circle>
+            </svg>
+            <span class="ring-timer-text" style="position: relative; z-index: 2; font-size: 10px; font-weight: 700; color: ${displayColor}; text-align: center; line-height: 1; max-width: 32px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">
+                ${ringText}
+            </span>
         </div>
     `;
 }
 
-// --- FROSTED OVERLAY TOP SUB-HEADER (LOCATION ON LEFT, STATUS ON RIGHT) ---
+// --- FROSTED OVERLAY TOP SUB-HEADER (LOCATION ON LEFT, STORY RING ON RIGHT) ---
 const postSubHeaderHtml = `
     <div class="post-sub-header-overlay" style="
         position: absolute;
@@ -1426,68 +1424,66 @@ const postSubHeaderHtml = `
         z-index: 20;
         display: flex; 
         justify-content: space-between; 
-        align-items: center; 
-        padding: 8px 12px;
-        border-radius: 6px;
+        align-items: flex-start; 
+        padding: 6px;
         gap: 8px;
-        background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0) 100%);
-        pointer-events: auto;
-        color: #ffffff;
+        pointer-events: none; /* Lets clicks pass through the empty space to the media */
     ">
-        <!-- LEFT SIDE: CATEGORY-COLORED LOCATION BUTTON + 2-ROW ADDRESS & DISTANCE -->
+        <!-- LEFT SIDE: COMBINED LOCATION ICON, ADDRESS & DISTANCE -->
         <div style="
             display: flex; 
             align-items: center; 
-            gap: 8px; 
+            gap: 6px; 
             min-width: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            padding: 4px 6px;
+            border-radius: 24px; /* Fully rounded pill shape */
+            pointer-events: auto;
         ">
-            <div style="flex-shrink: 0;">
+            <!-- LOCATION ICON -->
+            <div style="flex-shrink: 0; display: flex; align-items: center;">
                 ${locateBtnHtml}
             </div>
-            <div style="
-                display: flex; 
-                flex-direction: column; 
-                min-width: 0; 
-                line-height: 1.2;
+            
+            <!-- ADDRESS -->
+            <span style="
+                font-size: 11.5px;
+                font-weight: 600;
+                color: #ffffff;
+                white-space: nowrap; 
+                overflow: hidden; 
+                text-overflow: ellipsis;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             ">
-                <!-- ROW 1: ADDRESS -->
-                <span style="
-                    font-size: 11.5px;
-                    font-weight: 700;
-                    color: #ffffff;
-                    white-space: nowrap; 
-                    overflow: hidden; 
-                    text-overflow: ellipsis;
-                    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-                ">
-                    ${locationName}
-                </span>
+                ${locationName}
+            </span>
 
-                <!-- ROW 2: DISTANCE AWAY -->
-                ${distanceBadge && distanceBadge !== '-' ? `
-                    <span style="
-                        font-size: 10px;
-                        font-weight: 500;
-                        color: rgba(231, 231, 231);
-                        white-space: nowrap; 
-                        overflow: hidden; 
-                        text-overflow: ellipsis;
-                        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-                    ">
-                        ${distanceBadge}
-                    </span>
-                ` : ''}
-            </div>
+            <!-- DISTANCE AWAY PILL -->
+            ${distanceBadge && distanceBadge !== '-' ? `
+                <div style="
+                    font-size: 10px;
+                    font-weight: 600;
+                    color: #ffffff;
+                    background: rgba(255, 255, 255, 0.2); /* Lighter frosted background */
+                    padding: 2px 6px;
+                    border-radius: 12px;
+                    white-space: nowrap;
+                    flex-shrink: 0; /* Prevents the distance from squishing */
+                ">
+                    ${distanceBadge}
+                </div>
+            ` : ''}
         </div>
 
-        <!-- RIGHT SIDE: SVG STATUS BADGE -->
-        <div style="flex-shrink: 0;">
+        <!-- RIGHT SIDE: STORY RING PROGRESS BAR -->
+        <div style="flex-shrink: 0; pointer-events: auto;">
             ${postStatusIndicatorHtml}
         </div>
     </div>
 `;
-        
-        // Calculate total reactions & setup user choice state
+
+// Calculate total reactions & setup user choice state
         const counts = post.reactions || { interested: 0, countMeIn: 0, goodTip: 0 };
         const totalReactions = (counts.interested || 0) + (counts.countMeIn || 0) + (counts.goodTip || 0);
         
@@ -1695,17 +1691,15 @@ card.innerHTML = `
     <div style="
         width: 100%; 
         overflow: hidden; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     ">
         <!-- MEDIA CONTAINER -->
         <div style="position: relative; width: 100%; overflow: hidden;">
             ${postSubHeaderHtml}
             ${galleryHtml}
-            ${topRightOverlayHtml}
+            ${bottomLeftOverlayHtml}
             ${reactionMediaOverlayHtml}
         </div>    
     </div>  
-            ${progressBarHtml}
     
     <div class="post-card-body" style="padding: 0;">
 
@@ -1714,11 +1708,10 @@ card.innerHTML = `
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    padding: 4px 10px 8px 10px;
+    padding: 8px 10px 8px 10px;
     width: 100%;
     box-sizing: border-box;
     font-size: 11.5px;
-    border-bottom: 1px solid #e9e9e9;
     font-weight: 500;
 ">
     <!-- LEFT COLUMN: ACTION BUTTONS (Like, Directions, Comments) -->
@@ -1761,7 +1754,7 @@ card.innerHTML = `
     </div>
 
     <!-- RIGHT COLUMN: PROFILE AVATAR + OPTIONS MENU BUTTON -->
-    <div style="display: flex; align-items: center; gap: 2px; justify-content: flex-end;">
+    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
         ${actionRowAvatarHtml}
 
         <!-- OPTIONS MENU BUTTON -->
@@ -3873,15 +3866,16 @@ function getDistance(lat1, lon1, lat2, lon2) {
 
 setInterval(() => {
     const now = Date.now();
-    const progressTracks = document.querySelectorAll('.post-progress-track');
+    const rings = document.querySelectorAll('.story-ring-container');
 
-    progressTracks.forEach(track => {
-        const startTime = parseInt(track.dataset.start);
-        const lifespanMs = parseInt(track.dataset.lifespan);
-        const fill = track.querySelector('.post-progress-fill');
-        
-        // Target the span that sits directly next to the track in your HTML wrapper
-        const textSpan = track.nextElementSibling; 
+    // Circumference matches the radius=24 math
+    const circumference = 100.531;
+
+    rings.forEach(ring => {
+        const startTime = parseInt(ring.dataset.start);
+        const lifespanMs = parseInt(ring.dataset.lifespan);
+        const fill = ring.querySelector('.post-progress-fill');
+        const textSpan = ring.querySelector('.ring-timer-text');
         
         if (!fill || !startTime || !lifespanMs || !textSpan) return;
 
@@ -3889,63 +3883,56 @@ setInterval(() => {
         const isPending = startTime > now;
 
         if (isPending) {
-            // SCHEDULED: Full orange bar
-            fill.style.width = '100%';
-            fill.style.backgroundColor = '#c07227';
-            
-            // The text remains as the original start date/time (e.g., "12. aug kl 12") 
-            // until it becomes live, so no text update is needed here.
-            
+            // SCHEDULED: Full orange ring
+            fill.style.strokeDashoffset = '0';
+            fill.style.stroke = '#c07227';
         } else if (now < endTime) {
-            // LIVE: Calculate shrinking green bar and countdown text
+            // LIVE: Calculate shrinking ring offset
             const remainingTimeMs = endTime - now;
             let remainingPercentage = (remainingTimeMs / lifespanMs) * 100;
-
             if (remainingPercentage < 0) remainingPercentage = 0;
             if (remainingPercentage > 100) remainingPercentage = 100;
 
-            // 1. Update Bar
-            fill.style.width = `${remainingPercentage.toFixed(2)}%`;
-            fill.style.backgroundColor = '#2d8b6d';
+            // Update SVG Ring
+            const offset = circumference - (remainingPercentage / 100) * circumference;
+            fill.style.strokeDashoffset = offset;
 
-            // 2. Update Text Countdown
+            // Update Text Countdown
             const minsRemaining = Math.max(0, Math.floor(remainingTimeMs / 60000));
             const totalHoursRemaining = Math.floor(minsRemaining / 60);
 
             let timeVal;
-            if (minsRemaining >= 2160) {
-                timeVal = `${Math.round(minsRemaining / 1440)}d`;
-            } else if (minsRemaining >= 1080) {
-                timeVal = `1d`;
-            } else if (totalHoursRemaining >= 1) {
+            if (minsRemaining >= 2160) timeVal = `${Math.round(minsRemaining / 1440)}d`;
+            else if (minsRemaining >= 1080) timeVal = `1d`;
+            else if (totalHoursRemaining >= 1) {
                 const mins = minsRemaining % 60;
-                timeVal = mins > 0 ? `${totalHoursRemaining}h ${mins}m` : `${totalHoursRemaining}h`;
-            } else {
-                timeVal = `${minsRemaining}m`;
+                // Add <br> so it stacks neatly in the center of the ring
+                timeVal = mins > 0 ? `${totalHoursRemaining}h<br>${mins}m` : `${totalHoursRemaining}h`; 
+            } else timeVal = `${minsRemaining}m`;
+
+            if (textSpan.innerHTML !== timeVal) {
+                textSpan.innerHTML = timeVal;
             }
 
-            const newText = `${timeVal} left`;
-            if (textSpan.textContent.trim() !== newText) {
-                textSpan.textContent = newText;
-            }
-
-            // 3. Turn text red if under 30 minutes
+            // Turn text and ring red if under 30 minutes
             if (minsRemaining < 30) {
                 textSpan.style.color = '#ca2727';
+                fill.style.stroke = '#ca2727';
             } else {
-                textSpan.style.color = '#64748b'; // Default text color
+                textSpan.style.color = '#ffffff';
+                fill.style.stroke = '#2d8b6d';
             }
 
         } else {
-            // EXPIRED: Hide bar, mark text as expired
-            fill.style.width = '0%';
+            // EXPIRED: Hide ring, mark text as expired
+            fill.style.strokeDashoffset = circumference;
             if (textSpan.textContent !== 'Expired') {
                 textSpan.textContent = 'Expired';
                 textSpan.style.color = '#ca2727';
             }
         }
     });
-}, 60000); // Runs every 1 minute
+}, 60000);
 
 window.sharePost = async (postId) => {
     // You can customize the message or URL per post
