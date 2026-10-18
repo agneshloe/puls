@@ -6,7 +6,7 @@
 
 body { 
     background: #ede4d6; 
-    background: #fff6e6; 
+    background: #fafaed; 
     display: flex; 
     flex-direction: column; 
     height: 100vh; 
@@ -121,8 +121,9 @@ header {
     max-width: 500px;
     width: auto;
     border-radius: 10px;
-    margin:10px;
-    background-color:#fcf1de;
+    margin:10px auto;
+    margin-right:5px; 
+    margin-left:5px;
 }
 /* --- The Feed --- */
 #feed {
@@ -149,7 +150,7 @@ header {
 .post-card {
     max-width: 500px;
     padding: 4px;
-    width: 97%;
+    width: 100%;
     margin: 7px auto 10px auto;
     background: transparent;
     padding: 0;
@@ -436,7 +437,7 @@ body.modal-open {
     /* Remove any default padding that might cause a gap */
     padding: 0;
     margin: 0;
-    border-radius:6px;
+    border-radius:0px;
 }
 
 .image-gallery img, 
@@ -561,7 +562,7 @@ body.modal-open {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(21, 21, 21, 0.5);
+    background: rgba(21, 21, 21, 0);
     color: #fff; /* Changed to white to match your SVG stroke */
     border: none;
     border-radius: 50%;
@@ -576,7 +577,7 @@ body.modal-open {
     padding: 0;
     margin: 0;
     
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    /* box-shadow: 0 2px 6px rgba(0,0,0,0.15); */
     
     /* ADDED FOR FADING */
     opacity: 1;
@@ -1112,7 +1113,7 @@ h3 {
 }
 .postDescription {
     padding: 10px;
-    font-size: 10pt;
+    font-size: 11pt;
     color: #000;
     font-weight: 400;
     margin: 0;
@@ -1316,53 +1317,65 @@ h3 {
 
 }
 #header-link-section {
-    padding: 0 16px;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 12px;
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     align-items: center;
-    background-color:transparent;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    gap: 8px; /* Clean, even spacing */
+    background-color: transparent;
+    font-family: inherit; /* Adopts your app's global font */
+    flex-shrink: 0;
+    /* Allows smooth horizontal scrolling if buttons overflow */
+    overflow-x: auto; 
+    scrollbar-width: none; 
+}
+#header-link-section::-webkit-scrollbar {
+    display: none; 
 }
 
 .header-link {
-    flex: 1;
-    max-width: 70px;
-    z-index: 100;
-    text-align: center;
     position: relative;
-    padding: 2px 0 8px 0; /* Comfortable tap target */
-    margin-bottom: -1px; /* Align active indicator cleanly with parent border */
-    border-bottom: 2px solid transparent;
-    transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 6px 16px; 
+    margin-bottom: 10px;
+    border-radius: 20px; /* Modern pill shape */
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
-/* ACTIVE STATE: Premium dark indigo/slate highlight bar */
+/* ACTIVE STATE: Uses your app's primary dark UI color (#2d2d2d) */
 .header-link.active {
-    border-bottom-color: #0f172a; /* Deep executive slate */
+    background-color: #2d2d2d; 
+    border-color: #2d2d2d;
 }
 
 .header-link a {
     text-decoration: none;
-    color: #8695aa; /* Muted professional grey */
-    font-size: 11px; /* Standard crisp UI font size */
-    font-weight: 500;
-    letter-spacing: 0.2px;
-    font-family:monospace;
+    color: #94a3b8; /* Matches your modal subheading color */
+    font-size: 12px; 
+    font-weight: 600; 
     display: block;
-    transition: color 0.2s ease, font-weight 0.2s ease;
+    transition: color 0.2s ease;
     -webkit-tap-highlight-color: transparent;
+    white-space: nowrap; 
 }
 
-/* HOVER STATE: Subtle feedback before clicking */
+/* HOVER STATES */
+.header-link:hover {
+    background-color: #f1f5f9; /* Matches your reset button background */
+}
+.header-link.active:hover {
+    background-color: #1a1a1a; 
+}
 .header-link:hover a {
-    color: #334155;
+    color: #334155; /* Matches your modal primary text color */
 }
 
-/* ACTIVE LINK TEXT: Bold, clean dark slate */
+/* ACTIVE LINK TEXT: High contrast */
 .header-link.active a {
-    color: #0f172a;
-    font-weight: 600;
+    color: #ffffff; 
 }
 .cat-icon-btn {
     flex: 1;
