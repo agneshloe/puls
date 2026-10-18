@@ -1071,7 +1071,7 @@ function renderNextSlice() {
                                             position: absolute; 
                                             bottom: 12px; 
                                             left: 12px; 
-                                            background: rgba(0,0,0,0.5); 
+                                            background: rgba(0,0,0,0); 
                                             backdrop-filter: blur(4px);
                                             border: none; 
                                             border-radius: 50%; 
@@ -1158,8 +1158,8 @@ function renderNextSlice() {
         const userId = getPulseUserId();
         const hasUserLiked = post.likedBy && post.likedBy[userId];
 
-        const heartFill = hasUserLiked ? "#d22f6d" : "none";
-        const heartStroke = hasUserLiked ? "#d22f6d" : "#433838";
+        const heartFill = hasUserLiked ? "#ae2100" : "none";
+        const heartStroke = hasUserLiked ? "#ae2100" : "#433838";
 // --- AUTHOR AVATAR LOGIC ---
         let authorAvatarUrl = post.authorAvatar || null;
         if (!authorAvatarUrl && post.authorId === currentUserId) {
@@ -1181,7 +1181,7 @@ const authorPreviewsHtml = authorPosts
 
 // 1. INLINE USERNAME FOR DESCRIPTION (Bold text only, no avatar)
 const inlineAuthorHtml = authorHandle 
-    ? `<strong onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="font-weight: 700; font-family:monospace; text-decoration:underline; color: #8e011e; margin-right: 6px;">${authorHandle}</strong>` 
+    ? `<strong onclick="filterFeedByUser('${post.authorId}', '${post.authorUsername}')" style="font-weight: 700; font-family:monospace; color: #494949ff; margin-right: 2px;">${authorHandle}</strong>` 
     : '';
 
 // 2. CLICKABLE AVATAR + POPOVER FOR ACTION ROW (RIGHT SIDE)
@@ -1392,7 +1392,7 @@ if (isExpired) {
             display: flex; 
             align-items: center; 
             justify-content: center;
-            background: rgba(0, 0, 0, 0.5); /* Frosted dark backing */
+            background: rgb(66 62 46 / 50%); /* Frosted dark backing */
             backdrop-filter: blur(4px);    /* Exact same blur as the address pill */
             border-radius: 50%;
         ">
@@ -1427,7 +1427,7 @@ if (isExpired) {
             display: flex; 
             align-items: center; 
             justify-content: center;
-            background: rgba(0, 0, 0, 0.5); /* Frosted dark backing */
+            background: rgb(66 62 46 / 50%); /* Frosted dark backing */
             backdrop-filter: blur(4px);    /* Exact same blur as the address pill */
             border-radius: 50%;
         ">
@@ -1464,7 +1464,7 @@ const postSubHeaderHtml = `
             align-items: center; 
             gap: 6px; 
             min-width: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgb(66 62 46 / 50%);
             backdrop-filter: blur(4px);
             padding: 4px 6px;
             border-radius: 24px; /* Fully rounded pill shape */
@@ -1742,8 +1742,9 @@ card.innerHTML = `
     box-sizing: border-box;
     font-size: 11.5px;
     font-weight: 500;
+    border-bottom: 1px solid #d9d7c9;
 ">
-    <!-- LEFT COLUMN: ACTION BUTTONS (Like, Directions, Comments) -->
+    <!-- LEFT COLUMN: ACTION BUTTONS (Like, Directions, Comments, Options) -->
     <div style="
         display: inline-flex; 
         align-items: center; 
@@ -1762,13 +1763,6 @@ card.innerHTML = `
             </span>
         </div>
         
-        <!-- 2. DIRECTIONS BUTTON -->
-        <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
-            </svg>
-        </button>
-
         <!-- 3. COMMENTS BUTTON + COUNT -->
         <div style="display: flex; align-items: center; gap: 4px;">
             <button class="action-btn" onclick="toggleComments('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Comments">
@@ -1780,13 +1774,16 @@ card.innerHTML = `
                 ${post.commentsCount || (post.comments ? post.comments.length : 0)}
             </span>
         </div>
-    </div>
+        
+        <!-- 2. DIRECTIONS BUTTON -->
+        <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+        </button>
 
-    <!-- RIGHT COLUMN: PROFILE AVATAR + OPTIONS MENU BUTTON -->
-    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
-        ${actionRowAvatarHtml}
 
-        <!-- OPTIONS MENU BUTTON -->
+        <!-- 4. OPTIONS MENU BUTTON -->
         <div class="options-menu-container" style="position: relative; display: inline-flex; align-items: center;">
             <button class="action-btn menu-trigger-btn" style="width: 28px; height: 28px; background: none; border: 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
@@ -1796,7 +1793,8 @@ card.innerHTML = `
                 </svg>
             </button>
             
-            <div class="options-tooltip" style="right: 0; left: auto;">
+            <!-- Tooltip aligned left so it doesn't push off the screen edge -->
+            <div class="options-tooltip" style="left: 0; right: auto;">
                 <div class="tooltip-item" onclick="openPostDetailsSheet('${post.id}')">
                     <span>Details</span>
                 </div>
@@ -1810,15 +1808,24 @@ card.innerHTML = `
             </div>
         </div>
     </div>
+
+    <!-- RIGHT COLUMN: AUTHOR NAME + PROFILE AVATAR -->
+    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+        <span style="font-size: 13px; font-weight: 600; color: #2d2d2d;">
+            ${inlineAuthorHtml}
+        </span>
+        ${actionRowAvatarHtml}
+    </div>
 </div>
 
 <!-- HIDDEN TEMPLATE HOLDING DETAILS CONTENT -->
 <template id="post-info-data-${post.id}">
     ${infoDetailsContentHtml}
 </template>
-        <!-- DESCRIPTION WITH BOLD USERNAME ON SAME LINE -->
+
+        <!-- DESCRIPTION (No inline author) -->
         <div class="postDescription">
-            ${inlineAuthorHtml}${post.description ? formatHashtags(post.description) : ''}
+            ${post.description ? formatHashtags(post.description) : ''}
         </div>
 
         <!-- POST DETAILS ROW (UPPERCASE CATEGORY • RELATIVE TIME) -->
@@ -1832,7 +1839,8 @@ card.innerHTML = `
                 ` : ''}
         </div>
     </div>
-`;        
+`;
+
         // --- ATTACH LISTENERS ---
         const galleryEl = card.querySelector('.image-gallery');
         if (galleryEl && media.length > 1) {
@@ -2119,8 +2127,12 @@ document.getElementById('submitPost').onclick = async () => {
             const cleanFileName = file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
             const storagePath = `media/${Date.now()}_${cleanFileName}`;
             const storageRef = sRef(storage, storagePath);
-            
-            const snapshot = await uploadBytes(storageRef, file);
+            // ADD THIS: Force the browser and CDN to cache the file for 1 year (31536000 seconds)
+            const metadata = {
+                cacheControl: 'public, max-age=31536000, immutable'
+            };
+            // Pass the metadata as the third argument
+            const snapshot = await uploadBytes(storageRef, file, metadata);
             const url = await getDownloadURL(snapshot.ref);
             
             uploadedCount++;
@@ -3717,8 +3729,8 @@ window.toggleLike = async (postId) => {
         svg.style.color = "#433838"; 
     } else {
         // Switch to LIKED
-        svg.setAttribute('fill', '#d22f6d');
-        svg.style.color = "#d22f6d";
+        svg.setAttribute('fill', '#ae2100');
+        svg.style.color = "#ae2100";
     }
 
     // Update in-memory post cache immediately
@@ -3753,8 +3765,8 @@ window.toggleLike = async (postId) => {
         countEl.style.display = currentCount > 0 ? 'inline' : 'none';
         
         if (isLiked) {
-            svg.setAttribute('fill', '#d22f6d');
-            svg.style.color = "#d22f6d";
+            svg.setAttribute('fill', '#ae2100');
+            svg.style.color = "#ae2100";
         } else {
             svg.setAttribute('fill', 'none');
             svg.style.color = "#433838";
