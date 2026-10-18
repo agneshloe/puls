@@ -151,7 +151,7 @@ header {
     max-width: 500px;
     padding: 4px;
     width: 100%;
-    margin: 7px auto 10px auto;
+    margin: 0px auto 15px auto;
     background: transparent;
     padding: 0;
 }
@@ -1112,15 +1112,30 @@ h3 {
     font-family:'Roboto',sans-serif;
 }
 .postDescription {
-    padding: 10px;
-    font-size: 11pt;
+    position: relative; /* Added to anchor the connecting line */
+    padding: 5px;
+    font-size: 10.5pt;
     color: #000;
     font-weight: 400;
-    margin: 0;
+    margin: 10px;
     word-wrap: break-word;
     overflow-wrap: break-word;
     line-height: 1.4;
     text-align: left;
+    border: 1px solid #f2f0e0;
+    border-radius: 5px;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* The vertical connecting line */
+.postDescription::before {
+    content: "";
+    position: absolute;
+    top: -11px; /* Reaches exactly across the 10px margin to the Action Row */
+    right: 10px; /* Aligns perfectly with the right border */
+    width: 1px; /* Same thickness as the border */
+    height: 11px; /* Spans the gap */
+    background-color: #d9d7c9; /* Matches your border color */
 }
 .post-inline-avatar {
     width: 18px;
@@ -1331,6 +1346,7 @@ h3 {
     /* Allows smooth horizontal scrolling if buttons overflow */
     overflow-x: auto; 
     scrollbar-width: none; 
+    display: none;
 }
 #header-link-section::-webkit-scrollbar {
     display: none; 
