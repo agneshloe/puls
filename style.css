@@ -183,13 +183,13 @@ header {
     width: 100%;
     max-width: 500px;
     height: 90vh; /* Slide up to 90% of screen height */
-    background: #252b30;
+    background: #fafaed;
     border-radius: 20px 20px 0 0;
     /* Starting Position: Hidden below screen */
     transform: translateX(-50%) translateY(100%); /* Start off-screen */
     transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
     z-index: 19999;
-    color:#eee;
+    color:#3e3e3e;
 }
 
 /* When this class is added via JS, it slides up */
@@ -255,8 +255,8 @@ body.modal-open {
 .modal-content input[type="date"],
 .modal-content input[type="time"] {
     width: 100%;
-    height: 50px; /* Fixed height for consistency */
-    margin: 10px 0;
+    height: 40px; /* Fixed height for consistency */
+    margin: 5px 0;
     padding: 0 15px;
     border: 1.5px solid #eee; 
     border-radius: 10px;
@@ -273,10 +273,7 @@ body.modal-open {
     display: flex;
     gap: 8px;
     align-items: flex-start;
-    background: #18191b;
-    padding: 10px;
     border-radius: 8px;
-    border: 1px solid #17191c;
 }
 .modal-actions {
     flex-shrink: 0;         /* Never collapses or squishes */
@@ -832,9 +829,6 @@ button:disabled {
     width: 100%;
     height: 48px;
     padding: 0 12px;
-    border: 1px solid #2d333b; /* Standard light border */
-    border-radius: 8px;
-    background: #1b1d24;
     box-sizing: border-box;
     font-size: 14px;
     cursor: pointer;
@@ -881,8 +875,6 @@ button:disabled {
     display: none; /* Toggled by JS */
     align-items: center;
     justify-content: space-between;
-    background: #1b1d24;
-    border: 1px solid #ff3100;
     border-radius: 8px;
     box-sizing: border-box;
     z-index: 10;
@@ -1106,9 +1098,10 @@ button:disabled {
     color: #ff4d4d; /* Red */
 }
 h3 {
-    color:#f1f1f1;
+    color:#2e2e2e;
     margin: 0 0 10px 0;
-    font-size: 24px;
+    text-transform: uppercase;
+    font-size: 16px;
     font-family:'Roboto',sans-serif;
 }
 .postDescription {
@@ -1164,10 +1157,10 @@ h3 {
 #postDescription {
     width: 100%;
     padding: 12px;
-    background: #1a1d23;
-    border: 1.5px solid #2d333b;
+    background: #ffffff;
+    border:none;
     border-radius: 8px;
-    color: #f1f1f1;
+    color: #353535;
     font-family: inherit;
     line-height: 1.5;
     resize: none; /* Prevents the user from manually dragging the corner */
@@ -1412,7 +1405,5 @@ h3 {
 }
 
 .cat-icon-btn.active {
-    background: #0f172a;
-    color: #ffffff;
-    border-color: #0f172a;
+    background: #ffffbc;
 }
