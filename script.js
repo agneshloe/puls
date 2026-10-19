@@ -1201,7 +1201,6 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
                 height: 24px; 
                 border-radius: 50%; 
                 object-fit: cover; 
-                border: 1.5px solid #fff;
                 background-color:#fff;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             " />
@@ -1715,6 +1714,69 @@ const rxIconMap = {
             authorDisplayName = localStorage.getItem(`pulse_username_${currentUserId}`) || null;
         }
 
+        // --- 1. DESCRIPTION TRUNCATION LOGIC ---
+        const descText = post.description || '';
+        let descHtml = '';
+
+        if (descText) {
+            // Show expand button if text is over 150 chars or has more than 3 line breaks
+            const needsExpand = descText.length > 150 || (descText.match(/\n/g) || []).length > 3;
+            
+            descHtml = `
+                <div class="postDescription">
+                    <div id="desc-text-${post.id}" style="
+                        display: -webkit-box;
+                        -webkit-line-clamp: 5;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                        transition: all 0.2s ease;
+                    ">
+                        ${formatHashtags(descText)}
+                    </div>
+                    ${needsExpand ? `
+                    <button id="desc-btn-${post.id}" onclick="toggleDescription('${post.id}')" style="
+                        background: none; 
+                        border: none; 
+                        width: 100%; 
+                        padding: 4px 0 0 0; 
+                        margin-top: 2px;
+                        cursor: pointer; 
+                        color: #b3b3b3ff; 
+                        display: flex; 
+                        justify-content: flex-end;
+                    ">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // --- 2. RECENT COMMENT PREVIEW LOGIC ---
+        let recentCommentHtml = '';
+        if (post.comments) {
+            // Convert Firebase object to array
+            const commentsArray = Object.keys(post.comments).map(key => post.comments[key]);
+            
+            // Filter out replies (only keep comments without a parentId)
+            const mainComments = commentsArray.filter(c => !c.parentId);
+            
+            if (mainComments.length > 0) {
+                // Sort the main comments by newest first
+                mainComments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                const latestComment = mainComments[0];
+                
+                recentCommentHtml = `
+                    <div style="margin: 0 10px 8px 10px; padding: 8px 12px; background: #fcfcd3; font-style:italic; border-radius: 8px; border: 1px solid #d9d7c9; display: flex; gap: 8px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
+                        <span style="font-size: 11px; font-weight: 700; color: #565656; flex-shrink: 0;">${latestComment.authorName}</span>
+                        <span style="font-size: 11px; color: #8f8f8f; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${latestComment.text}</span>
+                    </div>
+                `;
+            }
+        }
+
 card.innerHTML = `
     <!-- COMBINED MEDIA CARD WRAPPER -->
     <div style="
@@ -1765,7 +1827,8 @@ card.innerHTML = `
         
         <!-- 3. COMMENTS BUTTON + COUNT -->
         <div style="display: flex; align-items: center; gap: 4px;">
-            <button class="action-btn" onclick="toggleComments('${post.id}')" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Comments">
+            <!-- ADDED post.authorId to the function call below -->
+            <button class="action-btn" onclick="toggleComments('${post.id}', '${post.authorId}')" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Comments">
                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
@@ -1774,7 +1837,7 @@ card.innerHTML = `
                 ${post.commentsCount || (post.comments ? post.comments.length : 0)}
             </span>
         </div>
-        
+
         <!-- 2. DIRECTIONS BUTTON -->
         <button class="action-btn" onclick="openDirections(${post.lat}, ${post.lng})" style="width: 28px; height: 28px; background: none; border: 0; color: #433838; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Get Directions">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -1823,10 +1886,11 @@ card.innerHTML = `
     ${infoDetailsContentHtml}
 </template>
 
-        <!-- DESCRIPTION (No inline author) -->
-        <div class="postDescription">
-            ${post.description ? formatHashtags(post.description) : ''}
-        </div>
+        <!-- DESCRIPTION -->
+        ${descHtml}
+
+        <!-- RECENT COMMENT PREVIEW -->
+        ${recentCommentHtml}
 
         <!-- POST DETAILS ROW (UPPERCASE CATEGORY • RELATIVE TIME) -->
         <div style="padding: 0px 10px 8px 10px; font-size: 7.5pt; color: #949494; font-weight: 500; display: flex; align-items: center; gap: 4px;">
@@ -5427,4 +5491,275 @@ window.observeFeedVideos = function() {
         video.classList.add('is-observed'); // Mark as observed so we don't attach twice
         window.videoScrollObserver.observe(video);
     });
+};
+
+// --- STATE VARIABLES ---
+let activeCommentPostId = null;
+let activePostAuthorId = null; // Tracks the author of the currently open post
+let activeReplyParentId = null; 
+const COMMENT_LIMIT = 10;
+
+// --- 1. OPEN & CLOSE MODAL ---
+window.toggleComments = function(postId, postAuthorId) {
+    activeCommentPostId = postId;
+    activePostAuthorId = postAuthorId;
+    activeReplyParentId = null; 
+    
+    document.getElementById('replyIndicator').style.display = 'none';
+    
+    const overlay = document.getElementById('commentsModalOverlay');
+    const sheet = document.getElementById('commentsSheet');
+    
+    overlay.style.display = 'flex';
+    setTimeout(() => { sheet.style.transform = 'translateY(0)'; }, 10);
+
+    const commentsRef = ref(db, `pulses/${postId}/comments`);
+    onValue(commentsRef, (snapshot) => {
+        if (activeCommentPostId !== postId) return; 
+        renderComments(snapshot.val());
+    });
+};
+
+window.closeComments = function() {
+    const sheet = document.getElementById('commentsSheet');
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(() => { document.getElementById('commentsModalOverlay').style.display = 'none'; }, 300);
+    
+    // Clear state and input field
+    activeCommentPostId = null;
+    activePostAuthorId = null;
+    document.getElementById('commentInput').value = "";
+    cancelReply();
+};
+
+// --- 2. SUBMIT A COMMENT (Updated with word limits) ---
+window.submitComment = async function() {
+    if (!activeCommentPostId) return;
+    
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // --- NEW: Limit Check (150 words max) ---
+    const wordCount = text.split(/\s+/).length;
+    if (wordCount > 150) {
+        alert("Your comment is too long. Please keep it under 150 words.");
+        return;
+    }
+    if (text.length > 1000) {
+        alert("Your comment exceeds the 1000 character limit.");
+        return;
+    }
+
+    const authorId = getPulseUserId(); 
+    const customUsername = localStorage.getItem(`pulse_username_${authorId}`) || "Anonymous";
+    const customAvatar = localStorage.getItem(`pulse_avatar_${authorId}`) || null;
+
+    const btn = document.getElementById('submitCommentBtn');
+    btn.innerText = "...";
+    btn.disabled = true;
+
+    try {
+        const commentsRef = ref(db, `pulses/${activeCommentPostId}/comments`);
+        const snapshot = await get(commentsRef);
+        
+        if (snapshot.exists()) {
+            const allComments = snapshot.val();
+            const userCommentCount = Object.values(allComments).filter(c => c.authorId === authorId).length;
+            
+            if (userCommentCount >= COMMENT_LIMIT) {
+                alert(`You have reached the maximum limit of ${COMMENT_LIMIT} comments on this post.`);
+                btn.innerText = "Post";
+                btn.disabled = false;
+                return;
+            }
+        }
+
+        const newCommentRef = push(commentsRef);
+        await set(newCommentRef, {
+            text: text,
+            authorId: authorId,
+            authorName: customUsername,
+            authorAvatar: customAvatar,
+            parentId: activeReplyParentId, 
+            createdAt: serverTimestamp()
+        });
+
+        const currentCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+        await set(ref(db, `pulses/${activeCommentPostId}/commentsCount`), currentCount + 1);
+
+        // Instant feed UI update
+        const feedCounterEl = document.getElementById(`comment-count-${activeCommentPostId}`);
+        if (feedCounterEl) {
+            const currentVal = parseInt(feedCounterEl.innerText) || 0;
+            feedCounterEl.innerText = currentVal + 1;
+            feedCounterEl.style.display = 'inline'; 
+        }
+
+        input.value = "";
+        cancelReply();
+    } catch (e) {
+        console.error("Failed to post comment", e);
+        alert("Could not post comment.");
+    }
+
+    btn.innerText = "Post";
+    btn.disabled = false;
+};
+
+// --- NEW: DELETE COMMENT FUNCTION ---
+window.deleteComment = async function(commentId) {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    
+    if (!activeCommentPostId) return;
+
+    try {
+        // 1. Remove the comment from the database (Setting to null deletes the node)
+        await set(ref(db, `pulses/${activeCommentPostId}/comments/${commentId}`), null);
+        
+        // 2. Re-calculate the total comments count
+        const commentsRef = ref(db, `pulses/${activeCommentPostId}/comments`);
+        const snapshot = await get(commentsRef);
+        const newCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+        
+        // 3. Update the total count in the database
+        await set(ref(db, `pulses/${activeCommentPostId}/commentsCount`), newCount);
+
+        // 4. Update the feed UI instantly
+        const feedCounterEl = document.getElementById(`comment-count-${activeCommentPostId}`);
+        if (feedCounterEl) {
+            feedCounterEl.innerText = newCount;
+            if (newCount === 0) {
+                feedCounterEl.style.display = 'none'; // Hide if back to 0
+            }
+        }
+    } catch (e) {
+        console.error("Failed to delete comment:", e);
+        alert("Could not delete comment.");
+    }
+};
+
+// --- 3. REPLY HELPERS ---
+window.initiateReply = function(commentId, authorName) {
+    activeReplyParentId = commentId;
+    const indicator = document.getElementById('replyIndicator');
+    document.getElementById('replyingToText').innerText = `Replying to ${authorName}`;
+    indicator.style.display = 'flex';
+    document.getElementById('commentInput').focus();
+};
+
+window.cancelReply = function() {
+    activeReplyParentId = null;
+    document.getElementById('replyIndicator').style.display = 'none';
+};
+
+// --- 4. TIMESTAMP HELPER ---
+function getCommentTimeAgo(timestamp) {
+    if (!timestamp) return 'Just now'; // Handles Firebase local latency compensation
+    const diffMs = Date.now() - timestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${Math.floor(diffHours / 24)}d`;
+}
+
+// --- 5. RENDER COMMENTS ---
+function renderComments(commentsData) {
+    const list = document.getElementById('commentsList');
+    if (!commentsData) {
+        list.innerHTML = `<div style="text-align: center; color: #94a3b8; margin-top: 20px; font-size: 12px;">No comments yet. Be the first!</div>`;
+        return;
+    }
+
+    const commentsArray = Object.keys(commentsData).map(key => ({ id: key, ...commentsData[key] }));
+    commentsArray.sort((a, b) => (a.createdAt || Date.now()) - (b.createdAt || Date.now()));
+
+    const mainComments = commentsArray.filter(c => !c.parentId);
+    const replies = commentsArray.filter(c => c.parentId);
+
+    let html = '';
+    mainComments.forEach(main => {
+        html += generateCommentHtml(main, false);
+        const childReplies = replies.filter(r => r.parentId === main.id);
+        childReplies.forEach(reply => {
+            html += generateCommentHtml(reply, true);
+        });
+    });
+
+    list.innerHTML = html;
+    list.scrollTop = list.scrollHeight;
+}
+
+// --- 6. HTML GENERATOR (Updated with Delete Button) ---
+function generateCommentHtml(comment, isReply) {
+    const margin = isReply ? 'margin-left: 32px; border-left: 2px solid #e2e8f0; padding-left: 12px;' : '';
+    
+    const avatar = comment.authorAvatar 
+        ? `<img src="${comment.authorAvatar}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">`
+        : `<div style="width: 24px; height: 24px; border-radius: 50%; background: #94a3b8; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold;">${comment.authorName.charAt(0).toUpperCase()}</div>`;
+
+    const isAuthor = (comment.authorId === activePostAuthorId);
+    const authorBadge = isAuthor ? `<span style="background: #e2e8f0; color: #475569; font-size: 9px; padding: 2px 4px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px;">AUTHOR</span>` : '';
+
+    const timeAgo = getCommentTimeAgo(comment.createdAt);
+
+    const currentUserId = getPulseUserId();
+    const isCommentOwner = (comment.authorId === currentUserId);
+
+    let actionBtnsHtml = '';
+    
+    // Reply button (Only on main comments)
+    if (!isReply) {
+        actionBtnsHtml += `<button onclick="initiateReply('${comment.id}', '${comment.authorName}')" style="background: none; border: none; font-size: 10px; color: #64748b; font-weight: 600; cursor: pointer; padding: 0;">Reply</button>`;
+    }
+    
+    // Delete button (Only if the user owns the comment)
+    if (isCommentOwner) {
+        actionBtnsHtml += `<button onclick="deleteComment('${comment.id}')" style="background: none; border: none; font-size: 10px; color: #ef4444; font-weight: 600; cursor: pointer; padding: 0;">Delete</button>`;
+    }
+
+    return `
+        <div style="display: flex; gap: 8px; margin-bottom: 4px; ${margin}">
+            <div style="flex-shrink: 0;">${avatar}</div>
+            <div style="display: flex; flex-direction: column; width: 100%;">
+                <div style="background: #ffffff; padding: 8px 12px; border-radius: 12px; border: 1px solid #f1f5f9;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #334155;">${comment.authorName}</span>
+                            ${authorBadge}
+                        </div>
+                        <span style="font-size: 10px; color: #94a3b8; font-weight: 500;">${timeAgo}</span>
+                    </div>
+                    <span style="font-size: 12px; color: #1e293b; line-height: 1.4; word-wrap: break-word;">${comment.text}</span>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 4px; padding-left: 4px;">
+                    ${actionBtnsHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.toggleDescription = function(postId) {
+    const textEl = document.getElementById(`desc-text-${postId}`);
+    const btnEl = document.getElementById(`desc-btn-${postId}`);
+    
+    if (textEl.style.webkitLineClamp === '5') {
+        // Expand
+        textEl.style.webkitLineClamp = 'unset';
+        btnEl.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>`;
+    } else {
+        // Collapse
+        textEl.style.webkitLineClamp = '5';
+        btnEl.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>`;
+    }
 };
