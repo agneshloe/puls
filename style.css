@@ -1108,12 +1108,12 @@ button:disabled {
 h3 {
     color:#f1f1f1;
     margin: 0 0 10px 0;
-    font-size:24px;
+    font-size: 24px;
     font-family:'Roboto',sans-serif;
 }
 .postDescription {
     position: relative; /* Added to anchor the connecting line */
-    padding: 5px;
+    padding: 8px 10px;
     font-size: 10.5pt;
     color: #000;
     font-weight: 400;
@@ -1122,9 +1122,8 @@ h3 {
     overflow-wrap: break-word;
     line-height: 1.4;
     text-align: left;
-    border: 1px solid #f2f0e0;
+    border: 1px solid #d9d7c9;
     border-radius: 5px;
-    font-family: 'Roboto', sans-serif;
 }
 
 /* The vertical connecting line */
@@ -1160,6 +1159,7 @@ h3 {
 }
 .hashtags {
     color: #106f8a;
+    font-weight: 600;
 }
 #postDescription {
     width: 100%;
