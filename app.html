@@ -313,12 +313,11 @@
 <div id="postModal" class="modal">
     <div class="modal-content">
         <div id="step-location" class="modal-step">
-    <h3>Set Location</h3>
     <div class="info-text">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="#007AFF" stroke-width="2.5" fill="none" style="flex-shrink: 0;">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
-        <span style="font-size: 12px; line-height: 1.4; color: #d3d7dc;">
+        <span style="font-size: 12px; line-height: 1.4;">
             <b>Privacy Active</b> 
         </span>
     </div>
@@ -326,7 +325,7 @@
     <div id="miniMap" style="height: 100%;"></div>
 
     <!-- LIVE OSLO BUSINESS AUTO-POPULATE SEARCH BAR -->
-    <div style="position: absolute; top: 0px; left: 10px; z-index: 1001; width: calc(100% - 70px); max-width: 230px;">
+    <div style="position: absolute; top: 0px; left: 5px; z-index: 1001; width: calc(100% - 70px); max-width: 230px;">
         <input 
             type="text" 
             id="oslo-venue-search" 
@@ -387,10 +386,10 @@
     <!-- Saved Locations Dropdown -->
     <div>
     <div style="display: flex; gap: 8px; align-items: center;">
-        <select id="savedLocationsSelect" onchange="applySavedLocation(this.value)" style="flex: 1; margin:0; height:38px; padding: 10px; border-radius: 8px; border: 1px solid #2d333b; background: #1a1d23; color: #eee; font-size: 13px; outline: none; cursor: pointer;">
-            <option value="" disabled selected>-- Select a saved spot --</option>
+        <select id="savedLocationsSelect" onchange="applySavedLocation(this.value)" style="flex: 1; margin:0; height:38px; padding: 10px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+            <option value="" disabled selected>Select a saved spot</option>
         </select>
-        <button type="button" id="deleteSavedLocationBtn" onclick="deleteSelectedSavedLocation()" title="Delete Selected Spot" disabled style="padding: 10px; border-radius: 8px; border: 1px solid #2d333b; background: #1a1d23; color: #ff3100; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s, background 0.2s;">
+        <button type="button" id="deleteSavedLocationBtn" onclick="deleteSelectedSavedLocation()" title="Delete Selected Spot" disabled style="padding: 10px; border-radius: 8px; border: none; color: #ff3100; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: opacity 0.2s, background 0.2s;">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -425,13 +424,13 @@
                     </div>
                 </div>            
             </div>
-            <div class="input-wrapper" style="margin-top: 10px; display: flex; align-items: center; background: #1a1d23; border-radius: 8px; border: 1px solid #2d333b; padding: 0 10px;">
+            <div class="input-wrapper" style="margin-top: 10px; display: flex; align-items: center; background: white; border-radius: 8px; border: none; padding: 0 10px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="#64748b" stroke-width="2" fill="none" style="flex-shrink: 0;">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                 </svg>
                 <input type="url" id="postLink" placeholder="Add a link (optional)" 
-                    style="flex: 1; background: transparent; border: none; padding: 10px; color: #eee; font-size: 13px; outline: none;">
+                    style="flex: 1; background: transparent; border: none; padding: 10px; color: #515151; font-size: 13px; outline: none;">
             </div>
         </div>
 
@@ -561,7 +560,7 @@
         </div>
 
         <!-- COMMENTS LIST AREA -->
-        <div id="commentsList" style="flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; background: #f8fafc;">
+        <div id="commentsList" style="flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; background: #fafaed;">
             <!-- Comments injected here -->
         </div>
 
