@@ -1769,9 +1769,9 @@ const rxIconMap = {
                 const latestComment = mainComments[0];
                 
                 recentCommentHtml = `
-                    <div style="margin: 0 10px 8px 10px; padding: 8px 12px; background: #fcfcd3; font-style:italic; border-radius: 8px; border: 1px solid #d9d7c9; display: flex; gap: 8px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
+                    <div style="margin: 0 10px 8px 10px; line-height: 1.4; display: flex; gap: 5px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
                         <span style="font-size: 11px; font-weight: 700; color: #565656; flex-shrink: 0;">${latestComment.authorName}</span>
-                        <span style="font-size: 11px; color: #8f8f8f; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">${latestComment.text}</span>
+                        <span style="font-size: 11px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${latestComment.text}</span>
                     </div>
                 `;
             }
