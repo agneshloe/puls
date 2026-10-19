@@ -1165,8 +1165,6 @@ function renderNextSlice() {
         if (!authorAvatarUrl && post.authorId === currentUserId) {
             authorAvatarUrl = localStorage.getItem(`pulse_avatar_${currentUserId}`) || null;
         }
-// --- MEDIA OVERLAYS (AUTHOR BOTTOM-LEFT & LINK TOP-RIGHT) ---
-        let bottomLeftOverlayHtml = '';
 // --- AUTHOR DATA & PREVIEWS ---
 const authorHandle = post.authorUsername || '';
 
@@ -1272,49 +1270,6 @@ const actionRowAvatarHtml = authorAvatarUrl ? `
     </div>
 ` : '';
 
-// 2. EXTERNAL LINK PILL (TOP RIGHT)
-        if (post.link) {
-            bottomLeftOverlayHtml = `
-                <div style="
-                    position: absolute; 
-                    bottom: 50px; 
-                    left: 12px; 
-                    z-index: 10; 
-                    pointer-events: auto;
-                ">
-                    <a href="${post.link}" target="_blank" rel="noopener noreferrer" 
-                    style="
-                        display: inline-flex; 
-                        align-items: center; 
-                        gap: 6px; 
-                        padding: 4px 10px; 
-                        border-radius: 14px; 
-                        background: rgba(0, 0, 0, 0.5); 
-                        backdrop-filter: blur(4px);
-                        text-decoration: none; 
-                        transition: background 0.2s;
-                        max-width: 140px;
-                    ">
-                        <svg viewBox="0 0 24 24" width="12" height="12" stroke="#ffffff" stroke-width="2.5" fill="none" style="flex-shrink: 0;">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                        <span style="
-                            font-size: 11px; 
-                            color: #ffffff; 
-                            font-weight: 600; 
-                            white-space: nowrap; 
-                            overflow: hidden; 
-                            text-overflow: ellipsis;
-                            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-                        ">
-                            ${new URL(post.link).hostname.replace('www.', '')}
-                        </span>
-                    </a>
-                </div>
-            `;
-        }
 // Extract street address name (removing district)
         const locationName = post.address ? post.address.split(',')[0].trim() : 'Unknown Location';
 // Clean main category string (plain text, no hashtag)
@@ -1770,10 +1725,49 @@ const rxIconMap = {
                 
                 recentCommentHtml = `
                     <div style="margin: 0 10px 8px 10px; line-height: 1.4; display: flex; gap: 5px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
-                        <span style="font-size: 11px; font-weight: 700; color: #565656; flex-shrink: 0;">${latestComment.authorName}</span>
-                        <span style="font-size: 11px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${latestComment.text}</span>
+                        <span style="font-size: 12px; font-weight: 700; color: #565656; flex-shrink: 0;">${latestComment.authorName}</span>
+                        <span style="font-size: 12px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${latestComment.text}</span>
                     </div>
                 `;
+            }
+        }
+
+        // --- 3. EXTERNAL LINK LOGIC ---
+        let externalLinkHtml = '';
+        if (post.link) {
+            try {
+                const domain = new URL(post.link).hostname.replace('www.', '');
+                externalLinkHtml = `
+                    <div style="margin: 0 10px 8px 10px;">
+                        <a href="${post.link}" target="_blank" rel="noopener noreferrer" 
+                        style="
+                            display: inline-flex; 
+                            align-items: center; 
+                            gap: 6px; 
+                            border-radius: 8px; 
+                            text-decoration: none; 
+                            max-width: 100%;
+                        ">
+                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="#64748b" stroke-width="2.5" fill="none" style="flex-shrink: 0;">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                            <span style="
+                                font-size: 11px; 
+                                color: #005266; 
+                                font-weight: 600; 
+                                white-space: nowrap; 
+                                overflow: hidden; 
+                                text-overflow: ellipsis;
+                            ">
+                                ${domain}
+                            </span>
+                        </a>
+                    </div>
+                `;
+            } catch (e) {
+                console.warn("Invalid link format for post:", post.id);
             }
         }
 
@@ -1787,7 +1781,6 @@ card.innerHTML = `
         <div style="position: relative; width: 100%; overflow: hidden;">
             ${postSubHeaderHtml}
             ${galleryHtml}
-            ${bottomLeftOverlayHtml}
             ${reactionMediaOverlayHtml}
         </div>    
     </div>  
@@ -1891,6 +1884,9 @@ card.innerHTML = `
 
         <!-- RECENT COMMENT PREVIEW -->
         ${recentCommentHtml}
+
+        <!-- EXTERNAL LINK -->
+        ${externalLinkHtml}
 
         <!-- POST DETAILS ROW (UPPERCASE CATEGORY • RELATIVE TIME) -->
         <div style="padding: 0px 10px 8px 10px; font-size: 7.5pt; color: #949494; font-weight: 500; display: flex; align-items: center; gap: 4px;">
@@ -2447,7 +2443,7 @@ window.populateSavedLocationsDropdown = function() {
     }
 
     selectEl.disabled = false;
-    selectEl.innerHTML = `<option value="" disabled selected>-- Select a saved spot (${savedList.length}) --</option>` + 
+    selectEl.innerHTML = `<option value="" disabled selected>Select a saved spot (${savedList.length})</option>` + 
         savedList.map(spot => `<option value="${spot.id}">${spot.name} (${spot.address.split(',')[0]})</option>`).join('');
 };
 document.getElementById('snapToLocation').onclick = (e) => {
@@ -3248,10 +3244,10 @@ window.openPreview = async () => {
             <div class="preview-description-card" style="
                 margin-top: 12px;
                 padding: 12px 14px;
-                background: #1a1d23;
-                border: 1px solid #2d333b;
+                background: #ffffffff;
+                border: none;
                 border-radius: 10px;
-                color: #eeeeee;
+                color: #323232;
                 font-size: 13px;
                 line-height: 1.5;
                 word-break: break-word;
@@ -5278,7 +5274,7 @@ async function fetchOsloVenuesFromApi(query, resultsContainer) {
 
         renderOsloApiResults(osloResults, resultsContainer);
     } catch (err) {
-        console.error('Error fetching Oslo business list:', err);
+        console.error('Error fetching business list:', err);
         renderOsloApiResults([], resultsContainer);
     }
 }
@@ -5286,7 +5282,7 @@ async function fetchOsloVenuesFromApi(query, resultsContainer) {
 function renderOsloApiResults(data, resultsContainer) {
     // FIX: Verify data is an actual Array before calling .map()
     if (!Array.isArray(data) || data.length === 0) {
-        resultsContainer.innerHTML = `<div style="padding: 8px 10px; font-size: 11px; color: #94a3b8;">No Oslo venues found</div>`;
+        resultsContainer.innerHTML = `<div style="padding: 8px 10px; font-size: 11px; color: #94a3b8;">No venues found</div>`;
         resultsContainer.style.display = 'block';
         return;
     }
@@ -5702,7 +5698,7 @@ function generateCommentHtml(comment, isReply) {
         : `<div style="width: 24px; height: 24px; border-radius: 50%; background: #94a3b8; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: bold;">${comment.authorName.charAt(0).toUpperCase()}</div>`;
 
     const isAuthor = (comment.authorId === activePostAuthorId);
-    const authorBadge = isAuthor ? `<span style="background: #e2e8f0; color: #475569; font-size: 9px; padding: 2px 4px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px;">AUTHOR</span>` : '';
+    const authorBadge = isAuthor ? `<span style="background: #e2e8f0; color: #475569; font-size: 9px; padding: 2px 4px; border-radius: 4px; font-weight: 700;">AUTHOR</span>` : '';
 
     const timeAgo = getCommentTimeAgo(comment.createdAt);
 
