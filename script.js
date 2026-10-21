@@ -248,6 +248,20 @@ const categoryMap = {
     "Nature": ["General", "Garden", "Park", "Wildlife", "Swim Spot"]
 };
 
+const iconMutedSvg = `
+    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <line x1="23" y1="9" x2="17" y2="15"></line>
+        <line x1="17" y1="9" x2="23" y2="15"></line>
+    </svg>`;
+
+const iconUnmutedSvg = `
+    <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>`;
+
 // IMMEDIATE CHECK: Prevent the flicker
 (function() {
     const hasLocation = localStorage.getItem('lastLat') && localStorage.getItem('lastLng');
@@ -402,7 +416,7 @@ function handleLiveDeletions(latestData) {
                 if (timerSpan && timerSpan.parentElement) {
                     timerSpan.parentElement.outerHTML = `
                         <span class="expired-tag" style="color: #ca2727; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">
-                            EXPIRED
+                            EXP
                         </span>`;
                 }
             }
@@ -1055,6 +1069,7 @@ function renderNextSlice() {
                 timerTextColor = '#ca2727';
             }
         }
+                
         // --- MEDIA GALLERY LOGIC ---
         const media = post.mediaItems || [];
         let galleryHtml = '';
@@ -1062,42 +1077,64 @@ function renderNextSlice() {
         const modeClass = imageMode === 'landscape' ? 'mode-landscape' : 'mode-portrait';
 
             if (media.length > 0) {
-                        const itemsHtml = media.map(item => {
-                            if (item.type === 'video') {
-                                return `
-                                    <div style="position: relative; width: 100%; height: 100%; flex: 0 0 100%;">
-                                        <video class="feed-video" src="${item.url}" muted loop playsinline autoplay style="width:100%; height:100%; object-fit:cover;"></video>
-                                        <button class="video-mute-btn" onclick="toggleVideoSound(event, this)" style="
-                                            position: absolute; 
-                                            bottom: 12px; 
-                                            left: 12px; 
-                                            background: rgba(0,0,0,0); 
-                                            backdrop-filter: blur(4px);
-                                            border: none; 
-                                            border-radius: 50%; 
-                                            color: white; 
-                                            width: 32px; 
-                                            height: 32px; 
-                                            display: flex; 
-                                            align-items: center; 
-                                            justify-content: center; 
-                                            cursor: pointer; 
-                                            z-index: 50;
-                                            transition: background 0.2s ease;
-                                        ">
-                                            <!-- Muted SVG (Default state) -->
-                                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                                <line x1="23" y1="9" x2="17" y2="15"></line>
-                                                <line x1="17" y1="9" x2="23" y2="15"></line>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                `;
-                            } else {
-                                return `<img src="${item.url}" loading="lazy" alt="Post content" style="width:100%; height:100%; object-fit:cover; flex: 0 0 100%;">`;
-                            }
-                        }).join('');
+            const itemsHtml = media.map(item => {
+                if (item.type === 'video') {
+                    return `
+                        <!-- IDENTICAL WRAPPER -->
+                        <div style="position: relative; width: 100%; height: 100%; flex: 0 0 100%; overflow: hidden; scroll-snap-align: start;">
+                            <video class="feed-video" src="${item.url}" muted loop playsinline autoplay style="
+                                width: 100%; 
+                                height: 100%; 
+                                object-fit: cover;
+                                pointer-events: none; 
+                                -webkit-user-select: none; 
+                                user-select: none;
+                                display: block;
+                            "></video>
+                            <button class="video-mute-btn" onclick="toggleVideoSound(event, this)" style="
+                                position: absolute; 
+                                bottom: 12px; 
+                                left: 12px; 
+                                background: rgba(0, 0, 0, 0); 
+                                border: 0px solid rgba(255, 255, 255, 0.2);
+                                border-radius: 50%; 
+                                color: white; 
+                                width: 28px; 
+                                height: 28px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                cursor: pointer; 
+                                z-index: 50;
+                                transition: all 0.2s ease;
+                            ">
+                                <!-- Sleek Muted SVG -->
+                                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <!-- IDENTICAL WRAPPER -->
+                        <div style="position: relative; width: 100%; height: 100%; flex: 0 0 100%; overflow: hidden; scroll-snap-align: start;">
+                            <img src="${item.url}" draggable="false" loading="lazy" alt="Post content" style="
+                                width: 100%; 
+                                height: 100%; 
+                                object-fit: cover; 
+                                pointer-events: none; 
+                                -webkit-user-drag: none; 
+                                -webkit-user-select: none; 
+                                user-select: none;
+                                display: block;
+                            ">
+                        </div>
+                    `;
+                }
+            }).join('');
 
             const navArrows = media.length > 1 ? `
                 <button class="nav-arrow left hidden" onclick="scrollGallery(this, -1)" style="left: 0px;">
@@ -1335,7 +1372,7 @@ if (isCurrentlyPending) {
 }
 
 if (isExpired) {
-    postStatusIndicatorHtml = `<span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">EXPIRED</span>`;
+    postStatusIndicatorHtml = `<span class="expired-tag" style="color: #f87171; font-weight: 800; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">EXP</span>`;
 } else if (isCurrentlyPending) {
     // SCHEDULED / UPCOMING POST: Solid orange ring with exact frosted backing
     postStatusIndicatorHtml = `
@@ -1724,8 +1761,8 @@ const rxIconMap = {
                 const latestComment = mainComments[0];
                 
                 recentCommentHtml = `
-                    <div style="margin: 0 10px 8px 10px; line-height: 1.4; display: flex; gap: 5px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
-                        <span style="font-size: 12px; font-weight: 700; color: #565656; flex-shrink: 0;">${latestComment.authorName}</span>
+                    <div style="margin: 0 10px 8px 10px; opacity: 0.7; line-height: 1.4; display: flex; gap: 5px; align-items: center; cursor: pointer;" onclick="toggleComments('${post.id}', '${post.authorId}')">
+                        <span style="font-size: 12px; font-weight: 700; color: #606011; flex-shrink: 0;">${latestComment.authorName}</span>
                         <span style="font-size: 12px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${latestComment.text}</span>
                     </div>
                 `;
@@ -1747,6 +1784,8 @@ const rxIconMap = {
                             border-radius: 8px; 
                             text-decoration: none; 
                             max-width: 100%;
+                            background-color: yellow;
+                            padding: 2px 4px;
                         ">
                             <svg viewBox="0 0 24 24" width="12" height="12" stroke="#64748b" stroke-width="2.5" fill="none" style="flex-shrink: 0;">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -1755,7 +1794,7 @@ const rxIconMap = {
                             </svg>
                             <span style="
                                 font-size: 11px; 
-                                color: #005266; 
+                                color: #565656; 
                                 font-weight: 600; 
                                 white-space: nowrap; 
                                 overflow: hidden; 
@@ -1793,6 +1832,7 @@ card.innerHTML = `
     justify-content: space-between; 
     align-items: center; 
     padding: 8px 10px 8px 10px;
+    background-color: rgb(255, 255, 244);
     width: 100%;
     box-sizing: border-box;
     font-size: 11.5px;
@@ -4028,8 +4068,8 @@ setInterval(() => {
         } else {
             // EXPIRED: Hide ring, mark text as expired
             fill.style.strokeDashoffset = circumference;
-            if (textSpan.textContent !== 'Expired') {
-                textSpan.textContent = 'Expired';
+            if (textSpan.textContent !== 'Exp') {
+                textSpan.textContent = 'Exp';
                 textSpan.style.color = '#ca2727';
             }
         }
@@ -5435,18 +5475,17 @@ window.closePostDetailsSheet = function() {
 };
 
 window.toggleVideoSound = function(event, btn) {
-    // Prevent the click from triggering the gallery scroll or opening the post
-    event.stopPropagation(); 
+    event.stopPropagation(); // Prevents clicking the button from triggering other card clicks
     
-    // Find the video element right before the button in the HTML
+    // Find the video element just before this button
     const video = btn.previousElementSibling; 
     
     if (video.muted) {
         video.muted = false;
-        btn.innerText = "🔊";
+        btn.innerHTML = iconUnmutedSvg;
     } else {
         video.muted = true;
-        btn.innerText = "🔇";
+        btn.innerHTML = iconMutedSvg;
     }
 };
 
@@ -5459,7 +5498,7 @@ window.videoScrollObserver = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             // Video is in view: Unmute
             video.muted = false;
-            if (toggleBtn) toggleBtn.innerText = "🔊";
+            if (toggleBtn) toggleBtn.innerHTML = iconUnmutedSvg;
             
             // Ensure it is playing (some mobile browsers pause when unmuted)
             const playPromise = video.play();
@@ -5467,13 +5506,13 @@ window.videoScrollObserver = new IntersectionObserver((entries) => {
                 playPromise.catch(error => {
                     // If browser blocks unmuted autoplay, fall back to muted
                     video.muted = true;
-                    if (toggleBtn) toggleBtn.innerText = "🔇";
+                    if (toggleBtn) toggleBtn.innerHTML = iconMutedSvg;
                 });
             }
         } else {
             // Video left view: Mute
             video.muted = true;
-            if (toggleBtn) toggleBtn.innerText = "🔇";
+            if (toggleBtn) toggleBtn.innerHTML = iconMutedSvg;
         }
     });
 }, {
