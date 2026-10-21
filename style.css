@@ -122,8 +122,6 @@ header {
     width: auto;
     border-radius: 10px;
     margin:10px auto;
-    margin-right:5px; 
-    margin-left:5px;
 }
 /* --- The Feed --- */
 #feed {
@@ -469,7 +467,7 @@ body.modal-open {
 }
 
 .gallery-dot {
-    width: 12px; /* Shortened fixed width */
+    width: 22px; /* Shortened fixed width */
     height: 3px;  /* Thin pill height */
     border-radius: 2px;
     background-color: rgba(255, 255, 255, 0.4);
@@ -1116,6 +1114,7 @@ h3 {
     line-height: 1.4;
     text-align: left;
     border: 1px solid #d9d7c9;
+    background-color: rgb(255, 255, 244);
     border-radius: 5px;
 }
 
